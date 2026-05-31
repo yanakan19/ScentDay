@@ -1,0 +1,81 @@
+import type { PriceRange } from '@/types';
+
+/** Per-brand price ranges + tier classification (verbatim port). */
+export const PRICE_RANGES: Record<string, PriceRange> = {
+  'Yves Saint Laurent': { min: 85, max: 130, tier: 'designer' },
+  Mancera: { min: 110, max: 165, tier: 'niche' },
+  Dior: { min: 80, max: 200, tier: 'designer' },
+  'Parfums de Marly': { min: 130, max: 200, tier: 'niche' },
+  Xerjoff: { min: 180, max: 350, tier: 'niche' },
+  Amouage: { min: 30, max: 380, tier: 'mideast' },
+  'Swiss Arabian': { min: 20, max: 60, tier: 'mideast' },
+  'Ahmed Al Maghribi': { min: 20, max: 80, tier: 'mideast' },
+  Assaf: { min: 25, max: 70, tier: 'niche' },
+  'Matiere Premiere': { min: 150, max: 260, tier: 'niche' },
+  'Tom Ford': { min: 130, max: 350, tier: 'designer' },
+  'Maison Francis Kurkdjian': { min: 130, max: 300, tier: 'niche' },
+  Afnan: { min: 15, max: 50, tier: 'mideast' },
+  'French Avenue': { min: 50, max: 120, tier: 'niche' },
+  'Street Origins': { min: 40, max: 100, tier: 'niche' },
+  'Giorgio Armani': { min: 70, max: 160, tier: 'designer' },
+  Kilian: { min: 160, max: 300, tier: 'niche' },
+  "Toskovat'": { min: 80, max: 180, tier: 'niche' },
+  'Orto Parisi': { min: 90, max: 180, tier: 'niche' },
+  Zara: { min: 8, max: 25, tier: 'designer' },
+  'Maison Asrar': { min: 30, max: 80, tier: 'mideast' },
+  'Jean Paul Gaultier': { min: 55, max: 130, tier: 'designer' },
+  'Roja Parfums': { min: 200, max: 500, tier: 'niche' },
+  Rayhaan: { min: 20, max: 60, tier: 'mideast' },
+  'Bespoke London': { min: 15, max: 40, tier: 'designer' },
+  'Ralph Lauren': { min: 60, max: 120, tier: 'designer' },
+  'Acqua di Parma': { min: 80, max: 180, tier: 'niche' },
+  Creed: { min: 180, max: 400, tier: 'niche' },
+  'Ex Nihilo': { min: 150, max: 280, tier: 'niche' },
+  "D'Orsay": { min: 80, max: 200, tier: 'niche' },
+  Zoologist: { min: 100, max: 200, tier: 'niche' },
+  'Maison Alhambra': { min: 20, max: 60, tier: 'mideast' },
+  Khadlaj: { min: 20, max: 60, tier: 'mideast' },
+  'Paris Corner': { min: 20, max: 70, tier: 'mideast' },
+  Rasasi: { min: 15, max: 60, tier: 'mideast' },
+  'Al Haramain': { min: 20, max: 80, tier: 'mideast' },
+  'Maison Crivelli': { min: 120, max: 250, tier: 'niche' },
+  Versace: { min: 60, max: 140, tier: 'designer' },
+  Burberry: { min: 55, max: 130, tier: 'designer' },
+  Kayali: { min: 60, max: 120, tier: 'niche' },
+  Mugler: { min: 60, max: 130, tier: 'designer' },
+  Mykonos: { min: 20, max: 50, tier: 'niche' },
+  Givenchy: { min: 60, max: 150, tier: 'designer' },
+  Avon: { min: 5, max: 25, tier: 'designer' },
+  Next: { min: 8, max: 30, tier: 'designer' },
+  'Dolce & Gabbana': { min: 60, max: 200, tier: 'designer' },
+  'Viktor & Rolf': { min: 70, max: 150, tier: 'designer' },
+  Diptyque: { min: 120, max: 250, tier: 'niche' },
+  'Christian Louboutin': { min: 100, max: 220, tier: 'niche' },
+  'Frederic Malle': { min: 180, max: 380, tier: 'niche' },
+  'Maison Margiela': { min: 70, max: 180, tier: 'niche' },
+  Chloe: { min: 60, max: 150, tier: 'designer' },
+  Valentino: { min: 70, max: 160, tier: 'designer' },
+  'Room 1015': { min: 90, max: 200, tier: 'niche' },
+};
+
+/** Brand → tier groupings used by the Discover › Brands screen. */
+export const BRAND_TIERS: Record<string, string[]> = {
+  designer: ['Yves Saint Laurent', 'Dior', 'Giorgio Armani', 'Tom Ford', 'Versace', 'Burberry', 'Givenchy', 'Mugler', 'Jean Paul Gaultier', 'Ralph Lauren', 'Zara', 'Bespoke London'],
+  niche: ['Mancera', 'Parfums de Marly', 'Xerjoff', 'Matiere Premiere', 'Maison Francis Kurkdjian', 'Afnan', 'French Avenue', 'Street Origins', 'Kilian', "Toskovat'", 'Orto Parisi', 'Roja Parfums', 'Acqua di Parma', 'Creed', 'Ex Nihilo', "D'Orsay", 'Zoologist', 'Maison Crivelli', 'Kayali', 'Maison Asrar', 'Mykonos'],
+  mideast: ['Amouage', 'Swiss Arabian', 'Ahmed Al Maghribi', 'Assaf', 'Rayhaan', 'Maison Alhambra', 'Khadlaj', 'Paris Corner', 'Rasasi', 'Al Haramain'],
+};
+
+/** Emoji icon per brand (with a default fallback). */
+export const BRAND_ICONS: Record<string, string> = {
+  'Yves Saint Laurent': '👑', Mancera: '🌿', Dior: '💎', 'Parfums de Marly': '🐎', Xerjoff: '✨',
+  Amouage: '🌙', 'Matiere Premiere': '⬡', 'Tom Ford': '◼', 'Maison Francis Kurkdjian': '🔴',
+  Afnan: '🌿', 'French Avenue': '🗼', 'Street Origins': '🏙️', 'Giorgio Armani': '⬜', Kilian: '♠',
+  'Orto Parisi': '🧬', Zara: '👕', 'Maison Asrar': '🌟', 'Jean Paul Gaultier': '💙', 'Roja Parfums': '👑',
+  Rayhaan: '🌊', 'Bespoke London': '🇬🇧', 'Ralph Lauren': '🐎', 'Acqua di Parma': '🟡', Creed: '👑',
+  'Ex Nihilo': '⬜', "D'Orsay": '🎩', Zoologist: '🦁', 'Maison Alhambra': '🏰', Khadlaj: '💐',
+  'Paris Corner': '🗺️', Rasasi: '🌙', 'Al Haramain': '🕌', 'Maison Crivelli': '🌺', Versace: '⚡',
+  Burberry: '☂️', Kayali: '🌸', Mugler: '⬡', Mykonos: '🏝️', Givenchy: '💜', "Toskovat'": '☠',
+  'Dolce & Gabbana': '💠', 'Maison Margiela': '🧥', Avon: '💄', Next: '🛍️',
+};
+
+export const BRAND_DEFAULT_ICON = '🧴';

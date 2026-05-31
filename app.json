@@ -1,0 +1,43 @@
+{
+  "expo": {
+    "name": "ScentDay",
+    "slug": "scentday",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "dark",
+    "scheme": "scentday",
+    "newArchEnabled": true,
+    "splash": {
+      "backgroundColor": "#000000",
+      "resizeMode": "contain"
+    },
+    "assetBundlePatterns": ["**/*"],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.scentday.app",
+      "infoPlist": {
+        "NSCameraUsageDescription": "ScentDay uses the camera to let you photograph your Scent of the Day.",
+        "NSPhotoLibraryUsageDescription": "ScentDay accesses your photos so you can attach them to posts."
+      }
+    },
+    "android": {
+      "package": "com.scentday.app",
+      "adaptiveIcon": {
+        "backgroundColor": "#000000"
+      },
+      "permissions": ["CAMERA", "READ_EXTERNAL_STORAGE"]
+    },
+    "web": {
+      "bundler": "metro"
+    },
+    "plugins": [
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "ScentDay accesses your photos so you can attach them to posts.",
+          "cameraPermission": "ScentDay uses the camera to let you photograph your Scent of the Day."
+        }
+      ]
+    ]
+  }
+}
