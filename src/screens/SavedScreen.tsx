@@ -14,16 +14,24 @@ type Nav = NativeStackNavigationProp<RootStackParamList>;
 export default function SavedScreen() {
   const navigation = useNavigation<Nav>();
   const savedIds = useStore((s) => s.savedIds);
+  const wishlistIds = useStore((s) => s.wishlistIds);
   const saved = FRAGRANCES.filter((f) => savedIds.includes(f.id));
+  const wishlist = FRAGRANCES.filter((f) => wishlistIds.includes(f.id));
 
   return (
     <Screen>
       <BackHeader />
-      <Text style={styles.h2}>Your Saved Fragrances</Text>
+      <Text style={styles.h2}>🔖 Saved Fragrances</Text>
       {saved.length ? (
-        saved.map((f) => <FragRow key={f.id} fragrance={f} sub={f.brand} onPress={() => navigation.navigate('FragranceDetail', { fragId: f.id })} />)
+        saved.map((f) => <FragRow key={f.id} fragrance={f} onPress={() => navigation.navigate('FragranceDetail', { fragId: f.id })} />)
       ) : (
-        <EmptyState>No saved fragrances yet.{'\n'}Tap 🤍 on any fragrance to save it.</EmptyState>
+        <EmptyState>No saved fragrances yet.{'\n'}Tap 🔖 on any fragrance to save it.</EmptyState>
+      )}
+      <Text style={styles.h2}>🛍️ Wishlist</Text>
+      {wishlist.length ? (
+        wishlist.map((f) => <FragRow key={f.id} fragrance={f} onPress={() => navigation.navigate('FragranceDetail', { fragId: f.id })} />)
+      ) : (
+        <EmptyState>Your wishlist is empty.{'\n'}Tap 🛍️ on any fragrance to add it.</EmptyState>
       )}
     </Screen>
   );

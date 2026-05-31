@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Image, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Image, Modal, Pressable, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { colors, radius, spacing } from '@/theme';
@@ -27,6 +27,7 @@ export function FeedCard({ post }: { post: Post }) {
 
   const [expanded, setExpanded] = useState(false);
   const [draft, setDraft] = useState('');
+  const [zoom, setZoom] = useState(false);
 
   const frag = fragById(post.fragId);
   const fragName = frag?.name ?? post.fragName ?? 'Unknown';
@@ -56,8 +57,8 @@ export function FeedCard({ post }: { post: Post }) {
         </View>
       </View>
 
-      {/* Media */}
-      <TouchableOpacity activeOpacity={0.9} onPress={openDetail}>
+      {/* Media — tapping a real photo enlarges it standalone; placeholder falls back to the profile */}
+      <TouchableOpacity activeOpacity={0.9} onPress={() => (post.photo ? setZoom(true) : openDetail())}>
         {post.photo ? (
           <Image source={{ uri: post.photo }} style={styles.media} resizeMode="cover" />
         ) : (
@@ -68,13 +69,24 @@ export function FeedCard({ post }: { post: Post }) {
         )}
       </TouchableOpacity>
 
-      {/* Body */}
+      {/* Body — only the fragrance name opens the perfume profile */}
       <View style={styles.body}>
-        <Text style={styles.fragLine}>
-          {fragName}
-          {brand ? <Text style={styles.brandDim}>{` · ${brand}`}</Text> : null}
-        </Text>
+        <TouchableOpacity onPress={openDetail} activeOpacity={0.7}>
+          <Text style={styles.fragLine}>
+            {fragName}
+            {brand ? <Text style={styles.brandDim}>{` · ${brand}`}</Text> : null}
+          </Text>
+        </TouchableOpacity>
       </View>
+
+      {/* Enlarged photo viewer */}
+      {post.photo ? (
+        <Modal visible={zoom} transparent animationType="fade" onRequestClose={() => setZoom(false)}>
+          <Pressable style={styles.zoomBackdrop} onPress={() => setZoom(false)}>
+            <Image source={{ uri: post.photo }} style={styles.zoomImg} resizeMode="contain" />
+          </Pressable>
+        </Modal>
+      ) : null}
 
       {/* Actions */}
       <View style={styles.actions}>
@@ -211,4 +223,6 @@ const styles = StyleSheet.create({
     paddingVertical: 9,
   },
   sendText: { color: '#000', fontSize: 13, fontWeight: '700' },
+  zoomBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.95)', alignItems: 'center', justifyContent: 'center' },
+  zoomImg: { width: '100%', height: '100%' },
 });

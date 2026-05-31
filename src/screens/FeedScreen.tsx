@@ -55,9 +55,9 @@ export default function FeedScreen() {
   };
 
   return (
-    <Screen>
+    <View style={styles.root}>
+      <Screen>
       <TopBar />
-      <ScopeTabs tabs={TABS} active={tab} onChange={(k) => setTab(k as FeedTab)} />
 
       {/* SOTD daily notification */}
       {!mySotd && !sotdNotifDismissed && (
@@ -73,7 +73,7 @@ export default function FeedScreen() {
         </TouchableOpacity>
       )}
 
-      <SotdStrip onCheckIn={() => setCheckInOpen(true)} />
+      <SotdStrip onCheckIn={() => setCheckInOpen(true)} feedTab={tab} />
 
       {/* Inline communities */}
       <View style={styles.commWrap}>
@@ -145,11 +145,34 @@ export default function FeedScreen() {
           </Pressable>
         </Pressable>
       </Modal>
-    </Screen>
+      </Screen>
+
+      {/* #9: filters moved to a thumb-reachable segmented bar at the bottom */}
+      <View style={styles.filterBar} pointerEvents="box-none">
+        <View style={styles.filterInner}>
+          <ScopeTabs tabs={TABS} active={tab} onChange={(k) => setTab(k as FeedTab)} scroll={false} />
+        </View>
+      </View>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  root: { flex: 1, backgroundColor: colors.bg },
+  filterBar: { position: 'absolute', left: 0, right: 0, bottom: 22, alignItems: 'center' },
+  filterInner: {
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.line,
+    borderRadius: 28,
+    paddingHorizontal: 4,
+    width: '92%',
+    shadowColor: '#000',
+    shadowOpacity: 0.4,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 8,
+  },
   notif: {
     flexDirection: 'row',
     alignItems: 'center',

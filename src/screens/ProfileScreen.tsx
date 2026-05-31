@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Modal, Pressable, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Alert, Image, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import * as ImagePicker from 'expo-image-picker';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { colors, radius } from '@/theme';
@@ -12,7 +13,7 @@ import { fragById } from '@/data/fragrances';
 import { DROP_RULES } from '@/data/seed';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
-type ModalKind = null | 'followers' | 'following' | 'drops';
+type ModalKind = null | 'followers' | 'following' | 'drops' | 'edit';
 
 export default function ProfileScreen() {
   const navigation = useNavigation<Nav>();
@@ -21,7 +22,37 @@ export default function ProfileScreen() {
   const following = useStore((s) => s.following);
   const followers = useStore((s) => s.followers);
   const drops = useStore((s) => s.drops);
+  const profile = useStore((s) => s.profile);
+  const updateProfile = useStore((s) => s.updateProfile);
   const [modal, setModal] = useState<ModalKind>(null);
+  const [editName, setEditName] = useState('');
+  const [editUsername, setEditUsername] = useState('');
+  const [editAbout, setEditAbout] = useState('');
+  const [editAvatar, setEditAvatar] = useState<string | null>(null);
+
+  const openEdit = () => {
+    setEditName(profile.displayName);
+    setEditUsername(profile.username);
+    setEditAbout(profile.about);
+    setEditAvatar(profile.avatarUri);
+    setModal('edit');
+  };
+
+  const pickAvatar = async () => {
+    const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!perm.granted) {
+      Alert.alert('Permission needed', 'Allow photo access to set a profile picture.');
+      return;
+    }
+    const res = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], allowsEditing: true, aspect: [1, 1], quality: 0.7 });
+    if (!res.canceled && res.assets[0]) setEditAvatar(res.assets[0].uri);
+  };
+
+  const saveEdit = () => {
+    const ok = updateProfile({ displayName: editName.trim() || profile.displayName, username: editUsername.trim(), about: editAbout, avatarUri: editAvatar });
+    if (!ok) Alert.alert('Username unchanged', 'You can only change your username once per week. Other changes were saved.');
+    setModal(null);
+  };
 
   const top3 = wardrobe.slice(0, 3);
   const mine = posts.filter((p) => p.user === 'you');
@@ -31,12 +62,26 @@ export default function ProfileScreen() {
     <Screen>
       <BackHeader />
       <View style={{ paddingHorizontal: 18 }}>
+        <View style={{ alignItems: 'flex-end' }}>
+          <TouchableOpacity style={styles.editBtn} onPress={openEdit}>
+            <Text style={styles.editBtnText}>Edit Profile</Text>
+          </TouchableOpacity>
+        </View>
         <View style={styles.heroCenter}>
-          <View style={styles.bigAvatar}>
-            <Text style={styles.bigAvatarText}>{ME.initial}</Text>
+          <View style={styles.avatarWrap}>
+            {profile.avatarUri ? (
+              <Image source={{ uri: profile.avatarUri }} style={styles.bigAvatar} />
+            ) : (
+              <View style={styles.bigAvatar}>
+                <Text style={styles.bigAvatarText}>{(profile.displayName[0] || 'Y').toUpperCase()}</Text>
+              </View>
+            )}
+            <TouchableOpacity style={styles.pencil} onPress={() => { openEdit(); pickAvatar(); }}>
+              <Text style={{ fontSize: 12 }}>✏️</Text>
+            </TouchableOpacity>
           </View>
-          <Text style={styles.name}>{ME.name}</Text>
-          <Text style={styles.tagline}>{ME.tagline}</Text>
+          <Text style={styles.name}>{profile.displayName}</Text>
+          <Text style={styles.tagline}>{`@${profile.username}`}</Text>
           <TouchableOpacity style={styles.dropsPill} onPress={() => setModal('drops')}>
             <Text style={{ fontSize: 14 }}>💧</Text>
             <Text style={styles.dropsNum}>{drops.total}</Text>
@@ -51,7 +96,7 @@ export default function ProfileScreen() {
         </View>
 
         <SectionCard title="About">
-          <Text style={styles.about}>{ME.about}</Text>
+          <Text style={styles.about}>{profile.about}</Text>
         </SectionCard>
 
         <SectionCard
@@ -165,6 +210,35 @@ export default function ProfileScreen() {
           </Pressable>
         </Pressable>
       </Modal>
+
+      {/* Edit profile */}
+      <Modal visible={modal === 'edit'} transparent animationType="slide" onRequestClose={() => setModal(null)}>
+        <Pressable style={styles.backdrop} onPress={() => setModal(null)}>
+          <Pressable style={styles.sheet} onPress={(e) => e.stopPropagation()}>
+            <View style={styles.sheetHead}>
+              <Text style={styles.sheetTitle}>Edit Profile</Text>
+              <TouchableOpacity onPress={() => setModal(null)}><Text style={{ color: colors.textDim, fontSize: 22 }}>✕</Text></TouchableOpacity>
+            </View>
+            <View style={{ alignItems: 'center', marginBottom: 12 }}>
+              {editAvatar ? (
+                <Image source={{ uri: editAvatar }} style={styles.editAvatar} />
+              ) : (
+                <View style={[styles.editAvatar, { backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center' }]}>
+                  <Text style={styles.bigAvatarText}>{(editName[0] || 'Y').toUpperCase()}</Text>
+                </View>
+              )}
+              <TouchableOpacity onPress={pickAvatar}><Text style={styles.link}>Change photo</Text></TouchableOpacity>
+            </View>
+            <Text style={styles.fieldLabel}>Display name</Text>
+            <TextInput style={styles.input} value={editName} onChangeText={setEditName} placeholderTextColor={colors.textDim} />
+            <Text style={styles.fieldLabel}>Username (changeable once per week)</Text>
+            <TextInput style={styles.input} value={editUsername} onChangeText={setEditUsername} autoCapitalize="none" placeholderTextColor={colors.textDim} />
+            <Text style={styles.fieldLabel}>About Me</Text>
+            <TextInput style={[styles.input, { minHeight: 80, textAlignVertical: 'top' }]} value={editAbout} onChangeText={setEditAbout} multiline placeholderTextColor={colors.textDim} />
+            <TouchableOpacity style={styles.saveBtn} onPress={saveEdit}><Text style={styles.saveBtnText}>Save</Text></TouchableOpacity>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </Screen>
   );
 }
@@ -179,7 +253,16 @@ function Stat({ value, label, onPress }: { value: number; label: string; onPress
 }
 
 const styles = StyleSheet.create({
-  heroCenter: { alignItems: 'center', marginVertical: 16 },
+  heroCenter: { alignItems: 'center', marginVertical: 8 },
+  editBtn: { backgroundColor: colors.surface2, borderWidth: 1, borderColor: colors.line, borderRadius: 20, paddingHorizontal: 14, paddingVertical: 7 },
+  editBtnText: { color: colors.text, fontSize: 12, fontWeight: '700' },
+  avatarWrap: { position: 'relative' },
+  pencil: { position: 'absolute', bottom: 12, right: 0, width: 26, height: 26, borderRadius: 13, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: colors.line },
+  editAvatar: { width: 84, height: 84, borderRadius: 42, marginBottom: 8 },
+  fieldLabel: { color: colors.textDim, fontSize: 12, fontWeight: '600', marginBottom: 6, marginTop: 10 },
+  input: { backgroundColor: colors.surface2, borderWidth: 1, borderColor: colors.line, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 10, color: colors.text, fontSize: 14 },
+  saveBtn: { backgroundColor: colors.accent, borderRadius: 14, paddingVertical: 14, alignItems: 'center', marginTop: 16 },
+  saveBtnText: { color: '#000', fontSize: 15, fontWeight: '700' },
   bigAvatar: { width: 80, height: 80, borderRadius: 40, backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center', marginBottom: 12 },
   bigAvatarText: { color: '#000', fontSize: 36, fontWeight: '800' },
   name: { color: colors.text, fontSize: 20, fontWeight: '800' },

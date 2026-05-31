@@ -1,5 +1,8 @@
 import React, { useState } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import type { RootStackParamList } from '@/navigation/types';
 import { colors, radius } from '@/theme';
 import { Screen, TopBar, SectionCard, Quad, EmptyState } from '@/components/ui';
 import BottleSVG from '@/components/BottleSVG';
@@ -8,7 +11,10 @@ import { fragById } from '@/data/fragrances';
 import { getLayerResult } from '@/services/recommendations';
 import type { Fragrance } from '@/types';
 
+type Nav = NativeStackNavigationProp<RootStackParamList>;
+
 export default function LayeringScreen() {
+  const navigation = useNavigation<Nav>();
   const wardrobe = useStore((s) => s.wardrobe);
   const [baseId, setBaseId] = useState<string>('');
   const [pickerOpen, setPickerOpen] = useState(false);
@@ -46,17 +52,17 @@ export default function LayeringScreen() {
           {result && base && (
             <>
               <View style={styles.pair}>
-                <LayerCard heading="Base" frag={base} />
-                <LayerCard heading="Layer with" frag={result.partner} />
+                <LayerCard heading="Base" frag={base} onPress={() => navigation.navigate('FragranceDetail', { fragId: base.id })} />
+                <LayerCard heading="Layer with" frag={result.partner} onPress={() => navigation.navigate('FragranceDetail', { fragId: result.partner.id })} />
               </View>
 
               <SectionCard title="Shared notes">
                 <View style={styles.chipsWrap}>
                   {result.shared.length ? (
                     result.shared.map((n) => (
-                      <View key={n} style={styles.sharedChip}>
+                      <TouchableOpacity key={n} style={styles.sharedChip} onPress={() => navigation.navigate('NoteDetail', { noteName: n })}>
                         <Text style={styles.sharedChipText}>{`✨ ${n}`}</Text>
-                      </View>
+                      </TouchableOpacity>
                     ))
                   ) : (
                     <Text style={styles.dim}>No direct shared notes — contrasting combination</Text>
@@ -67,7 +73,7 @@ export default function LayeringScreen() {
                     <Text style={styles.onlyLabel}>{`Only in ${base.name}`}</Text>
                     <View style={styles.chipsWrap}>
                       {result.onlyBase.map((n) => (
-                        <View key={n} style={styles.onlyChip}><Text style={styles.onlyChipText}>{n}</Text></View>
+                        <TouchableOpacity key={n} style={styles.onlyChip} onPress={() => navigation.navigate('NoteDetail', { noteName: n })}><Text style={styles.onlyChipText}>{n}</Text></TouchableOpacity>
                       ))}
                     </View>
                   </View>
@@ -75,7 +81,7 @@ export default function LayeringScreen() {
                     <Text style={styles.onlyLabel}>{`Only in ${result.partner.name}`}</Text>
                     <View style={styles.chipsWrap}>
                       {result.onlyPartner.map((n) => (
-                        <View key={n} style={styles.onlyChip}><Text style={styles.onlyChipText}>{n}</Text></View>
+                        <TouchableOpacity key={n} style={styles.onlyChip} onPress={() => navigation.navigate('NoteDetail', { noteName: n })}><Text style={styles.onlyChipText}>{n}</Text></TouchableOpacity>
                       ))}
                     </View>
                   </View>
@@ -128,14 +134,14 @@ export default function LayeringScreen() {
   );
 }
 
-function LayerCard({ heading, frag }: { heading: string; frag: Fragrance }) {
+function LayerCard({ heading, frag, onPress }: { heading: string; frag: Fragrance; onPress: () => void }) {
   return (
-    <View style={styles.layerCard}>
+    <TouchableOpacity style={styles.layerCard} onPress={onPress} activeOpacity={0.7}>
       <Text style={styles.layerHeading}>{heading}</Text>
       <BottleSVG fragrance={frag} size={52} />
       <Text style={styles.layerName}>{frag.name}</Text>
       <Text style={styles.dim}>{frag.brand}</Text>
-    </View>
+    </TouchableOpacity>
   );
 }
 

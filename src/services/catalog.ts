@@ -32,43 +32,60 @@ export interface BoardEntry {
 }
 
 export type BoardTab = 'votes' | 'views' | 'worn';
+export type BoardPeriod = 'today' | 'month' | 'all';
 
-export function getBoard(tab: BoardTab, posts: Post[], wardrobe: WardrobeItem[]): BoardEntry[] {
+// TODO: real Today/Month figures need timestamped engagement events. Until then we
+// deterministically scale + jitter the all-time number so each period's list differs.
+function periodScale(id: string, period: BoardPeriod): number {
+  if (period === 'all') return 1;
+  let h = 0;
+  for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) >>> 0;
+  const base = period === 'month' ? 0.45 : 0.12;
+  return base * (0.7 + (h % 60) / 100); // 0.7–1.3 jitter
+}
+
+export function getBoard(tab: BoardTab, posts: Post[], wardrobe: WardrobeItem[], period: BoardPeriod = 'all'): BoardEntry[] {
+  let raw: { f: Fragrance; n: number }[];
+  let unit: 'pts' | 'views' | 'worn';
+
   if (tab === 'votes') {
     const tally: Record<string, number> = {};
     posts.forEach((p) => {
       tally[p.fragId] = (tally[p.fragId] || 0) + p.votes;
     });
-    return Object.keys(tally)
+    raw = Object.keys(tally)
       .map((id) => {
         const f = fragById(id);
-        return f ? { f, score: tally[id], sub: `${tally[id]} pts` } : null;
+        return f ? { f, n: tally[id] } : null;
       })
-      .filter((x): x is BoardEntry => !!x)
-      .sort((a, b) => b.score - a.score);
+      .filter((x): x is { f: Fragrance; n: number } => !!x);
+    unit = 'pts';
+  } else if (tab === 'views') {
+    raw = FRAGRANCES.map((f) => ({ f, n: BOARD_VIEWS[f.id] || 0 }));
+    unit = 'views';
+  } else {
+    const wornMap: Record<string, number> = {};
+    wardrobe.forEach((w) => {
+      wornMap[w.fragId] = (wornMap[w.fragId] || 0) + w.wornCount;
+    });
+    FRAGRANCES.forEach((f) => {
+      if (!wornMap[f.id]) wornMap[f.id] = Math.round(f.votes * 0.04);
+    });
+    raw = Object.keys(wornMap)
+      .map((id) => {
+        const f = fragById(id);
+        return f ? { f, n: wornMap[id] } : null;
+      })
+      .filter((x): x is { f: Fragrance; n: number } => !!x);
+    unit = 'worn';
   }
-  if (tab === 'views') {
-    return FRAGRANCES.map((f) => {
-      const v = BOARD_VIEWS[f.id] || 0;
-      return { f, score: v, sub: `${v.toLocaleString()} views` };
+
+  const label = (n: number) => (unit === 'pts' ? `${n} pts` : unit === 'views' ? `${n.toLocaleString()} views` : `${n}x worn`);
+  return raw
+    .map(({ f, n }) => {
+      const score = Math.max(1, Math.round(n * periodScale(f.id, period)));
+      return { f, score, sub: label(score) };
     })
-      .sort((a, b) => b.score - a.score)
-      .slice(0, 20);
-  }
-  // worn
-  const wornMap: Record<string, number> = {};
-  wardrobe.forEach((w) => {
-    wornMap[w.fragId] = (wornMap[w.fragId] || 0) + w.wornCount;
-  });
-  FRAGRANCES.forEach((f) => {
-    if (!wornMap[f.id]) wornMap[f.id] = Math.round(f.votes * 0.04);
-  });
-  return Object.keys(wornMap)
-    .map((id) => {
-      const f = fragById(id);
-      return f ? { f, score: wornMap[id], sub: `${wornMap[id]}x worn` } : null;
-    })
-    .filter((x): x is BoardEntry => !!x)
     .sort((a, b) => b.score - a.score)
     .slice(0, 20);
 }

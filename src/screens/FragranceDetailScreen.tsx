@@ -5,6 +5,7 @@ import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Screen, BackHeader, SectionCard, Chip, Bar, Quad, Avatar, EmptyState } from '@/components/ui';
 import BottleSVG from '@/components/BottleSVG';
+import { SaveWishlistButtons } from '@/components/FragRow';
 import { colors, radius, spacing, verdictColors } from '@/theme';
 import type { RootStackParamList } from '@/navigation/types';
 import type { Fragrance, BuyOption, Review } from '@/types';
@@ -51,9 +52,9 @@ export default function FragranceDetailScreen({ route }: Props) {
       <View style={styles.hero}>
         <View style={styles.heroBottle}>
           <BottleSVG fragrance={f} size={100} />
-          <TouchableOpacity style={styles.heartBtn} onPress={() => toggleSave(f.id)} activeOpacity={0.7}>
-            <Text style={{ fontSize: 22 }}>{saved ? '❤️' : '🤍'}</Text>
-          </TouchableOpacity>
+          <View style={styles.heroActions}>
+            <SaveWishlistButtons fragId={f.id} />
+          </View>
         </View>
         <Text style={styles.heroName}>{f.name}</Text>
         <Text style={styles.heroBrand}>{`${f.brand} · ${f.concentration}`}</Text>
@@ -218,6 +219,7 @@ function ReviewRow({
 const styles = StyleSheet.create({
   hero: { alignItems: 'center', paddingHorizontal: spacing.xl, paddingTop: spacing.sm, paddingBottom: spacing.lg },
   heroBottle: { position: 'relative', alignItems: 'center', justifyContent: 'center' },
+  heroActions: { position: 'absolute', top: -2, right: -54 },
   heartBtn: {
     position: 'absolute',
     top: -6,

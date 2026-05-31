@@ -1,5 +1,5 @@
 import React from 'react';
-import { Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Dimensions, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { colors, radius } from '@/theme';
@@ -14,6 +14,7 @@ import type { Review } from '@/types';
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
 const VERDICT: Record<string, string> = { buy: '✅ Buy', try: '🤔 Try', skip: '❌ Skip' };
+const PHOTO_W = Math.round(Dimensions.get('window').width * 0.82); // ~3 old cards wide
 
 export default function HomeScreen() {
   const navigation = useNavigation<Nav>();
@@ -31,15 +32,9 @@ export default function HomeScreen() {
   return (
     <Screen>
       <TopBar />
-      <View style={styles.headerRow}>
-        <Text style={styles.h1}>ScentDay</Text>
-        <TouchableOpacity style={styles.suggestBtn} onPress={() => navigation.navigate('SuggestFragrance')}>
-          <Text style={styles.suggestText}>+ Suggest Fragrance</Text>
-        </TouchableOpacity>
-      </View>
 
       {/* Latest Reviews */}
-      <Text style={styles.sectionLabel}>Latest Reviews</Text>
+      <Text style={[styles.sectionLabel, { paddingTop: 6 }]}>Latest Reviews</Text>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.hScroll}>
         {latestReviews.map(({ review, fragId }) => {
           const f = fragById(fragId);
@@ -62,9 +57,14 @@ export default function HomeScreen() {
           const f = fragById(p.fragId);
           return (
             <TouchableOpacity key={p.id} style={styles.photoCard} onPress={() => navigation.navigate('FragranceDetail', { fragId: p.fragId })}>
-              <View style={styles.photoImg}>
-                {p.photo ? <Image source={{ uri: p.photo }} style={{ width: 120, height: 120 }} /> : f ? <BottleSVG fragrance={f} size={70} /> : null}
-              </View>
+              {p.photo ? (
+                <Image source={{ uri: p.photo }} style={styles.photoImg} resizeMode="cover" />
+              ) : (
+                <View style={[styles.photoImg, styles.photoPlaceholder, { backgroundColor: (f?.color ?? '#1a1a1a') + '22' }]}>
+                  {f ? <BottleSVG fragrance={f} size={120} /> : null}
+                  <Text style={styles.photoBrand}>{f?.brand}</Text>
+                </View>
+              )}
               <Text style={styles.photoLabel} numberOfLines={1}>{f?.name ?? p.fragId}</Text>
               <Text style={styles.photoUser}>{`@${p.user}`}</Text>
             </TouchableOpacity>
@@ -102,8 +102,11 @@ const styles = StyleSheet.create({
   cardBrand: { color: colors.textDim, fontSize: 10, marginBottom: 6 },
   cardText: { color: colors.textDim, fontSize: 11, lineHeight: 15 },
   cardUser: { color: colors.textDim, fontSize: 10, marginTop: 8, fontWeight: '700' },
-  photoCard: { width: 120, borderRadius: radius.lg, overflow: 'hidden', backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.line },
-  photoImg: { width: 120, height: 120, alignItems: 'center', justifyContent: 'center' },
+  // #3: ~3x the old 120px card, square, same look as Feed photos.
+  photoCard: { width: PHOTO_W, borderRadius: radius.lg, overflow: 'hidden', backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.line },
+  photoImg: { width: PHOTO_W, height: PHOTO_W },
+  photoPlaceholder: { alignItems: 'center', justifyContent: 'center', gap: 6 },
+  photoBrand: { color: colors.textDim, fontSize: 12, fontWeight: '700', letterSpacing: 0.5 },
   photoLabel: { color: colors.text, padding: 8, fontSize: 11, fontWeight: '700' },
   photoUser: { color: colors.textDim, paddingHorizontal: 8, paddingBottom: 8, fontSize: 10 },
   newsItem: { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.line, borderRadius: radius.md, padding: 12, marginBottom: 8 },

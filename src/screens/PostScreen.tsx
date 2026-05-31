@@ -12,6 +12,11 @@ import type { Scope, Verdict } from '@/types';
 type Props = NativeStackScreenProps<RootStackParamList, 'Post'>;
 
 const TITLES: Record<string, string> = { sotd: 'Scent of the Day', review: 'Write a Review', question: 'Ask a Question' };
+const SUBTITLES: Record<string, string> = {
+  sotd: '📸 Snap what you’re wearing today and share it.',
+  review: '⭐ Rate a fragrance and tell the community what you think.',
+  question: '❓ Ask the community anything about a fragrance.',
+};
 const VERDICTS: { v: Verdict; label: string }[] = [
   { v: 'buy', label: '✅ Buy It' },
   { v: 'try', label: '🤔 Try First' },
@@ -56,7 +61,7 @@ export default function PostScreen({ route, navigation }: Props) {
     if (!res.canceled && res.assets[0]) setPhoto(res.assets[0].uri);
   };
 
-  const canSubmit = !!fragId && (!!photo || type === 'review');
+  const canSubmit = !!fragId && (type !== 'sotd' || !!photo);
 
   const onSubmit = () => {
     if (type === 'review' && !reviewText.trim()) {
@@ -82,18 +87,21 @@ export default function PostScreen({ route, navigation }: Props) {
       <BackHeader />
       <View style={{ paddingHorizontal: 16, paddingBottom: 16 }}>
         <Text style={styles.title}>{TITLES[type]}</Text>
+        <Text style={styles.subtitle}>{SUBTITLES[type]}</Text>
 
-        {/* Photo */}
-        <TouchableOpacity style={styles.drop} onPress={pickPhoto} activeOpacity={0.85}>
-          {photo ? (
-            <Image source={{ uri: photo }} style={styles.dropImg} />
-          ) : (
-            <>
-              <Text style={{ fontSize: 40 }}>📷</Text>
-              <Text style={styles.dropText}>Tap to take or choose a photo</Text>
-            </>
-          )}
-        </TouchableOpacity>
+        {/* SOTD leads with a big photo */}
+        {type === 'sotd' && (
+          <TouchableOpacity style={styles.drop} onPress={pickPhoto} activeOpacity={0.85}>
+            {photo ? (
+              <Image source={{ uri: photo }} style={styles.dropImg} />
+            ) : (
+              <>
+                <Text style={{ fontSize: 40 }}>📷</Text>
+                <Text style={styles.dropText}>Tap to take or choose a photo</Text>
+              </>
+            )}
+          </TouchableOpacity>
+        )}
 
         {/* Fragrance search */}
         <Text style={styles.label}>Fragrance (from your collection first)</Text>
@@ -133,6 +141,11 @@ export default function PostScreen({ route, navigation }: Props) {
                 ))}
               </View>
             )}
+            {query.trim().length > 0 && results.length === 0 && (
+              <TouchableOpacity style={styles.suggestRow} onPress={() => navigation.navigate('SuggestFragrance')}>
+                <Text style={styles.suggestRowText}>Can’t find it? ➕ Suggest a fragrance</Text>
+              </TouchableOpacity>
+            )}
           </>
         )}
 
@@ -168,6 +181,10 @@ export default function PostScreen({ route, navigation }: Props) {
                 </TouchableOpacity>
               ))}
             </View>
+            <Text style={styles.label}>Add a photo (optional)</Text>
+            <TouchableOpacity style={[styles.drop, styles.dropSmall]} onPress={pickPhoto} activeOpacity={0.85}>
+              {photo ? <Image source={{ uri: photo }} style={styles.dropImg} /> : <Text style={styles.dropText}>📷 Tap to add</Text>}
+            </TouchableOpacity>
           </>
         )}
 
@@ -222,7 +239,11 @@ export default function PostScreen({ route, navigation }: Props) {
 }
 
 const styles = StyleSheet.create({
-  title: { color: colors.text, fontSize: 18, fontWeight: '700', marginVertical: 12 },
+  title: { color: colors.text, fontSize: 18, fontWeight: '700', marginTop: 12, marginBottom: 4 },
+  subtitle: { color: colors.textDim, fontSize: 13, marginBottom: 14 },
+  dropSmall: { aspectRatio: undefined, height: 110, marginTop: 6 },
+  suggestRow: { marginTop: 8, padding: 12, borderRadius: radius.md, borderWidth: 1, borderColor: colors.accent, backgroundColor: colors.accentSoft, alignItems: 'center' },
+  suggestRowText: { color: colors.accent, fontSize: 13, fontWeight: '700' },
   drop: {
     width: '100%',
     aspectRatio: 1,

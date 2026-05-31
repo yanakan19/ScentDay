@@ -14,7 +14,15 @@ import { SEED_POSTS } from '@/data/posts';
 import { SEED_WARDROBE, SEED_FRIEND_SOTDS, INITIAL_SAVED, INITIAL_DROPS, DROP_POINTS } from '@/data/seed';
 import { SEED_COMMUNITIES, SEED_COMMUNITY_POSTS } from '@/data/communities';
 import { SEED_REVIEWS_MAP } from '@/data/reviews';
-import { INITIAL_FOLLOWING, INITIAL_FOLLOWERS } from '@/data/users';
+import { INITIAL_FOLLOWING, INITIAL_FOLLOWERS, ME } from '@/data/users';
+
+interface ProfileState {
+  displayName: string;
+  username: string;
+  about: string;
+  avatarUri: string | null;
+  usernameChangedAt: number;
+}
 
 interface DropsState {
   total: number;
@@ -43,10 +51,12 @@ interface ScentDayState {
   following: string[];
   followers: string[];
   savedIds: string[];
+  wishlistIds: string[];
   friendSotds: FriendSotd[];
   mySotd: string | null;
   sotdNotifDismissed: boolean;
   drops: DropsState;
+  profile: ProfileState;
 
   // ── id counters ──
   _postId: number;
@@ -58,6 +68,7 @@ interface ScentDayState {
   isFollower: (uid: string) => boolean;
   isFriend: (uid: string) => boolean;
   isSaved: (id: string) => boolean;
+  isWishlisted: (id: string) => boolean;
   dropsTotal: () => number;
 
   // ── actions ──
@@ -65,6 +76,9 @@ interface ScentDayState {
   addComment: (postId: number, text: string) => void;
   voteComment: (postId: number, commentId: number) => void;
   toggleSave: (fragId: string) => void;
+  toggleWishlist: (fragId: string) => void;
+  updateProfile: (p: Partial<Omit<ProfileState, 'usernameChangedAt'>>) => boolean;
+  setSotdReaction: (user: string, emoji: string) => void;
   toggleFollow: (uid: string) => void;
   addToCollection: (fragId: string) => void;
   removeFromCollection: (fragId: string) => void;
@@ -93,6 +107,8 @@ export const useStore = create<ScentDayState>((set, get) => ({
   following: [...INITIAL_FOLLOWING],
   followers: [...INITIAL_FOLLOWERS],
   savedIds: [...INITIAL_SAVED],
+  wishlistIds: [],
+  profile: { displayName: ME.name, username: 'yanakan_s', about: ME.about, avatarUri: null, usernameChangedAt: 0 },
   friendSotds: SEED_FRIEND_SOTDS.map((s) => ({ ...s })),
   mySotd: null,
   sotdNotifDismissed: false,
@@ -106,6 +122,7 @@ export const useStore = create<ScentDayState>((set, get) => ({
   isFollower: (uid) => get().followers.includes(uid),
   isFriend: (uid) => get().following.includes(uid) && get().followers.includes(uid),
   isSaved: (id) => get().savedIds.includes(id),
+  isWishlisted: (id) => get().wishlistIds.includes(id),
   dropsTotal: () => get().drops.total,
 
   addDrops: (key, count = 1) =>
@@ -162,6 +179,42 @@ export const useStore = create<ScentDayState>((set, get) => ({
     }));
     if (!has) get().addDrops('save');
   },
+
+  toggleWishlist: (fragId) =>
+    set((s) => ({
+      wishlistIds: s.wishlistIds.includes(fragId)
+        ? s.wishlistIds.filter((x) => x !== fragId)
+        : [...s.wishlistIds, fragId],
+    })),
+
+  // username editable at most once per week; returns false if blocked.
+  updateProfile: (p) => {
+    let ok = true;
+    set((s) => {
+      const next = { ...s.profile };
+      if (p.displayName !== undefined) next.displayName = p.displayName;
+      if (p.about !== undefined) next.about = p.about;
+      if (p.avatarUri !== undefined) next.avatarUri = p.avatarUri;
+      if (p.username !== undefined && p.username !== s.profile.username) {
+        const WEEK = 7 * 24 * 60 * 60 * 1000;
+        if (s.profile.usernameChangedAt !== 0 && Date.now() - s.profile.usernameChangedAt < WEEK) {
+          ok = false;
+        } else {
+          next.username = p.username;
+          next.usernameChangedAt = Date.now();
+        }
+      }
+      return { profile: next };
+    });
+    return ok;
+  },
+
+  setSotdReaction: (user, emoji) =>
+    set((s) => ({
+      friendSotds: s.friendSotds.map((x) =>
+        x.user === user ? { ...x, reaction: x.reaction === emoji ? null : emoji, liked: (x.reaction === emoji ? false : emoji === '❤️') } : x
+      ),
+    })),
 
   toggleFollow: (uid) =>
     set((s) => {

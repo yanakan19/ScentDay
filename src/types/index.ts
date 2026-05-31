@@ -150,7 +150,12 @@ export interface FriendSotd {
   fragId: string;
   time: string;
   liked: boolean;
+  /** Selected emoji reaction (overrides `liked` when set). */
+  reaction?: string | null;
 }
+
+/** Emoji reaction set for SOTD bubbles. */
+export const SOTD_REACTIONS = ['❤️', '👍', '🤩', '👀', '🔥'] as const;
 
 export interface DropRule {
   key: string;

@@ -7,7 +7,7 @@ import type { RootStackParamList } from '@/navigation/types';
 import { Screen, TopBar, ScopeTabs, EmptyState } from '@/components/ui';
 import BottleSVG from '@/components/BottleSVG';
 import { useStore } from '@/store/useStore';
-import { getBoard, type BoardTab } from '@/services/catalog';
+import { getBoard, type BoardTab, type BoardPeriod } from '@/services/catalog';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
@@ -16,6 +16,11 @@ const TABS = [
   { key: 'views', label: '👁 Most Viewed' },
   { key: 'worn', label: '🧴 Most Worn' },
 ];
+const PERIODS = [
+  { key: 'today', label: 'Today' },
+  { key: 'month', label: 'This Month' },
+  { key: 'all', label: 'All Time' },
+];
 const MEDALS = ['#f59e0b', '#9ca3af', '#cd7c2e'];
 const PODIUM_H = [108, 88, 74];
 const PODIUM_LABEL = ['🥇 1st', '🥈 2nd', '🥉 3rd'];
@@ -23,9 +28,10 @@ const PODIUM_LABEL = ['🥇 1st', '🥈 2nd', '🥉 3rd'];
 export default function RankingsScreen() {
   const navigation = useNavigation<Nav>();
   const [tab, setTab] = useState<BoardTab>('votes');
+  const [period, setPeriod] = useState<BoardPeriod>('all');
   const posts = useStore((s) => s.posts);
   const wardrobe = useStore((s) => s.wardrobe);
-  const ranked = getBoard(tab, posts, wardrobe);
+  const ranked = getBoard(tab, posts, wardrobe, period);
 
   const top3 = ranked.slice(0, 3);
   const rest = ranked.slice(3);
@@ -37,6 +43,7 @@ export default function RankingsScreen() {
       <TopBar />
       <Text style={styles.h2}>Rankings</Text>
       <ScopeTabs tabs={TABS} active={tab} onChange={(k) => setTab(k as BoardTab)} />
+      <ScopeTabs tabs={PERIODS} active={period} onChange={(k) => setPeriod(k as BoardPeriod)} />
 
       {!ranked.length ? (
         <EmptyState>No data yet.</EmptyState>
