@@ -20,6 +20,12 @@ type Nav = NativeStackNavigationProp<RootStackParamList>;
 
 const REC_LABELS = ['Budget pick', 'Mid-range', 'Premium'];
 
+const REPUTABLE_SITES = [
+  { name: 'allbeauty.com', ic: '💜', desc: 'Great prices on 100% genuine fragrances' },
+  { name: 'justmylook.com', ic: '🛍️', desc: 'Authorised stockist, fast UK delivery' },
+  { name: 'notino.co.uk', ic: '🌿', desc: 'Europe\'s largest authorised fragrance retailer' },
+];
+
 export default function FragranceDetailScreen({ route }: Props) {
   const { fragId } = route.params;
   const nav = useNavigation<Nav>();
@@ -98,6 +104,25 @@ export default function FragranceDetailScreen({ route }: Props) {
 
       {/* Where to Buy */}
       <SectionCard title="Where to Buy">
+        {/* Recommended reputable sites */}
+        <View style={styles.reputableBanner}>
+          <Text style={styles.reputableTitle}>✅ Get legitimate products here</Text>
+          <Text style={styles.reputableSub}>Trusted UK retailers — authentic guaranteed</Text>
+        </View>
+        {REPUTABLE_SITES.map((site) => (
+          <View key={site.name} style={styles.reputableRow}>
+            <Text style={styles.reputableIc}>{site.ic}</Text>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.reputableName}>{site.name}</Text>
+              <Text style={styles.reputableDesc}>{site.desc}</Text>
+            </View>
+            <View style={styles.reputableBadge}>
+              <Text style={styles.reputableBadgeText}>TRUSTED</Text>
+            </View>
+          </View>
+        ))}
+        {/* Other buy options */}
+        {f.buy.length > 0 && <View style={styles.buyDivider} />}
         {f.buy.map((b: BuyOption, i: number) => (
           <View key={`${b.vendor}-${i}`} style={[styles.buyRow, b.official && styles.buyRowOfficial]}>
             <Text style={styles.buyIc}>{b.ic}</Text>
@@ -245,6 +270,34 @@ const styles = StyleSheet.create({
   noteGroupLabel: { color: colors.textDim, fontSize: 12, fontWeight: '700', marginBottom: 8 },
   noteWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   perfumerLine: { color: colors.textDim, fontSize: 13, marginTop: 4 },
+  reputableBanner: {
+    backgroundColor: '#0d2e1a',
+    borderWidth: 1,
+    borderColor: '#22c55e44',
+    borderRadius: radius.md,
+    padding: 12,
+    marginBottom: 10,
+  },
+  reputableTitle: { color: '#4ade80', fontSize: 13, fontWeight: '800' },
+  reputableSub: { color: '#86efac', fontSize: 11, marginTop: 3 },
+  reputableRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingVertical: 10,
+    paddingHorizontal: 10,
+    backgroundColor: '#0d2e1a',
+    borderWidth: 1,
+    borderColor: '#22c55e33',
+    borderRadius: radius.md,
+    marginBottom: 6,
+  },
+  reputableIc: { fontSize: 20 },
+  reputableName: { color: '#4ade80', fontSize: 14, fontWeight: '800' },
+  reputableDesc: { color: '#86efac', fontSize: 12, marginTop: 2 },
+  reputableBadge: { backgroundColor: '#166534', borderRadius: radius.sm, paddingHorizontal: 8, paddingVertical: 3 },
+  reputableBadgeText: { color: '#4ade80', fontSize: 10, fontWeight: '800', letterSpacing: 0.5 },
+  buyDivider: { height: 1, backgroundColor: colors.line, marginVertical: 10 },
   buyRow: {
     flexDirection: 'row',
     alignItems: 'center',
