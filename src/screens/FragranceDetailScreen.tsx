@@ -12,7 +12,8 @@ import type { Fragrance, Review } from '@/types';
 import { useStore } from '@/store/useStore';
 import { fragById } from '@/data/fragrances';
 import { getAISummary } from '@/data/reviews';
-import { getVibeRecs } from '@/services/recommendations';
+import { getNoteBasedRecs } from '@/services/recommendations';
+import type { NoteRec } from '@/services/recommendations';
 import { retailerLogoUris, brandLogoUris } from '@/data/brandLogos';
 import { LogoImage } from '@/components/LogoImage';
 import { getBuyListings } from '@/services/priceService';
@@ -48,7 +49,6 @@ export default function FragranceDetailScreen({ route }: Props) {
   }
 
   const saved = savedIds.includes(f.id);
-  const recs = getVibeRecs(f);
   const aiSummary = getAISummary(f.id);
   const reviews = reviewsMap[f.id] || [];
 
@@ -134,9 +134,8 @@ export default function FragranceDetailScreen({ route }: Props) {
         <BuySection frag={f} />
       </SectionCard>
 
-      {/* Vibe recommendations */}
-      <VibeRecSection title="🔥 If you like warm vibes" list={recs.warm} nav={nav} />
-      <VibeRecSection title="❄️ If you prefer fresh vibes" list={recs.fresh} nav={nav} />
+      {/* Note-based recommendations */}
+      <NoteRecsSection frag={f} nav={nav} />
 
       {/* Reviews */}
       {aiSummary && (
@@ -279,26 +278,38 @@ function NoteGroup({ label, notes }: { label: string; notes: string[] }) {
   );
 }
 
-function VibeRecSection({ title, list, nav }: { title: string; list: Fragrance[]; nav: Nav }) {
-  if (!list.length) return null;
+function NoteRecsSection({ frag, nav }: { frag: Fragrance; nav: Nav }) {
+  const [expanded, setExpanded] = useState(false);
+  const allRecs: NoteRec[] = getNoteBasedRecs(frag, 10);
+  if (!allRecs.length) return null;
+  const shown = expanded ? allRecs : allRecs.slice(0, 3);
   return (
-    <SectionCard title={title}>
-      {list.map((f, i) => (
+    <SectionCard title="If you like this, you'd like">
+      {shown.map(({ fragrance: x, sharedCount, sharedNotes }) => (
         <TouchableOpacity
-          key={f.id}
+          key={x.id}
           style={styles.recRow}
-          onPress={() => nav.navigate('FragranceDetail', { fragId: f.id })}
+          onPress={() => nav.navigate('FragranceDetail', { fragId: x.id })}
           activeOpacity={0.7}
         >
-          <BottleSVG fragrance={f} size={30} />
+          <BottleSVG fragrance={x} size={32} />
           <View style={{ flex: 1 }}>
-            <Text style={styles.recLabel}>{REC_LABELS[i] ?? ''}</Text>
-            <Text style={styles.recName}>{f.name}</Text>
-            <Text style={styles.recBrand}>{f.brand}</Text>
+            <Text style={styles.recName}>{x.name}</Text>
+            <Text style={styles.recBrand}>{x.brand}</Text>
+            <Text style={styles.recShared}>
+              {`${sharedCount} note${sharedCount !== 1 ? 's' : ''} in common · ${sharedNotes.join(', ')}`}
+            </Text>
           </View>
-          <Text style={styles.recRating}>{`★ ${f.rating}`}</Text>
+          <Text style={styles.recRating}>{`★ ${x.rating}`}</Text>
         </TouchableOpacity>
       ))}
+      {allRecs.length > 3 && (
+        <TouchableOpacity style={styles.expandBtn} onPress={() => setExpanded(v => !v)}>
+          <Text style={styles.expandBtnText}>
+            {expanded ? '▲ Show less' : `▼ See ${allRecs.length - 3} more`}
+          </Text>
+        </TouchableOpacity>
+      )}
     </SectionCard>
   );
 }
@@ -440,10 +451,10 @@ const styles = StyleSheet.create({
   officialPillText: { color: colors.accent, fontSize: 9, fontWeight: '800', letterSpacing: 0.5 },
   buyTap: { color: colors.textDim, fontSize: 14, marginTop: 2 },
   unlistedHeader: { color: colors.textDim, fontSize: 11, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.4, marginBottom: 6 },
-  recRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 8 },
-  recLabel: { color: colors.textDim, fontSize: 11, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.5 },
-  recName: { color: colors.text, fontSize: 14, fontWeight: '800', marginTop: 1 },
+  recRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: colors.line },
+  recName: { color: colors.text, fontSize: 14, fontWeight: '800' },
   recBrand: { color: colors.textDim, fontSize: 12, marginTop: 1 },
+  recShared: { color: colors.accent, fontSize: 11, marginTop: 3, fontWeight: '600' },
   recRating: { color: colors.star, fontSize: 13, fontWeight: '700' },
   aiCard: {
     backgroundColor: '#1e1b4b',

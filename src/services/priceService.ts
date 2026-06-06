@@ -290,10 +290,13 @@ function officialUrl(brand: string, name: string): string {
 /**
  * Generate a deterministic price within a range, offset slightly per retailer
  * so they don't all show the same number.
+ * Minimum returned value is £5 to prevent £0 on very cheap brands.
  */
 function genPrice(base: number, spread: number, seed: string): number {
-  const offset = (hashInt(seed) % (spread * 2)) - spread;
-  return Math.round((base + offset) / 5) * 5; // round to nearest £5
+  const s = Math.max(2, Math.round(spread)); // guard against 0 or tiny spread
+  const offset = (hashInt(seed) % (s * 2)) - s;
+  const raw = Math.round((Math.max(1, base) + offset) / 5) * 5;
+  return Math.max(5, raw); // never display £0
 }
 
 // ─── Main export ──────────────────────────────────────────────────────────

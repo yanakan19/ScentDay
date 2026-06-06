@@ -33,23 +33,36 @@ export function getCollectionValue(wardrobe: WardrobeItem[]): CollectionValue {
   };
 }
 
-/* ─────────────────────────── Vibe recommendations (detail screen) ─────────────────────────── */
+/* ─────────────────────────── Note-based recommendations (detail screen) ─────────────────────────── */
 
-export interface VibeRecs {
-  warm: Fragrance[];
-  fresh: Fragrance[];
+export interface NoteRec {
+  fragrance: Fragrance;
+  sharedCount: number;
+  sharedNotes: string[];
 }
 
-export function getVibeRecs(f: Fragrance): VibeRecs {
-  const warmPool = FRAGRANCES.filter((x) => x.id !== f.id && (x.season.Autumn > 70 || x.season.Winter > 70)).sort((a, b) => b.votes - a.votes);
-  const freshPool = FRAGRANCES.filter((x) => x.id !== f.id && (x.season.Spring > 70 || x.season.Summer > 70)).sort((a, b) => b.votes - a.votes);
-  const pick = (pool: Fragrance[]) =>
-    [
-      pool.filter((x) => x.votes < 3000)[0],
-      pool.filter((x) => x.votes >= 3000 && x.votes < 8000)[0],
-      pool.filter((x) => x.votes >= 8000)[0],
-    ].filter((x): x is Fragrance => !!x);
-  return { warm: pick(warmPool), fresh: pick(freshPool) };
+/**
+ * Returns up to `limit` fragrances ranked by number of notes shared with `f`.
+ * Ties broken by rating then votes.
+ */
+export function getNoteBasedRecs(f: Fragrance, limit = 10): NoteRec[] {
+  const myNotes = new Set(
+    [...f.notes.top, ...f.notes.mid, ...f.notes.base].map((n) => n.toLowerCase()),
+  );
+  return FRAGRANCES
+    .filter((x) => x.id !== f.id)
+    .map((x) => {
+      const xAll = [...x.notes.top, ...x.notes.mid, ...x.notes.base];
+      const shared = xAll.filter((n) => myNotes.has(n.toLowerCase()));
+      return { fragrance: x, sharedCount: shared.length, sharedNotes: shared.slice(0, 3) };
+    })
+    .filter((r) => r.sharedCount > 0)
+    .sort((a, b) =>
+      b.sharedCount - a.sharedCount ||
+      b.fragrance.rating - a.fragrance.rating ||
+      b.fragrance.votes - a.fragrance.votes,
+    )
+    .slice(0, limit);
 }
 
 /* ─────────────────────────── AI collection analysis ─────────────────────────── */
