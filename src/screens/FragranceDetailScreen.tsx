@@ -20,35 +20,50 @@ type Nav = NativeStackNavigationProp<RootStackParamList>;
 
 const REC_LABELS = ['Budget pick', 'Mid-range', 'Premium'];
 
+function parsePrice(price: string): number {
+  return parseFloat(price.replace(/[^0-9.]/g, '')) || 0;
+}
+
 /** Estimated UK shipping cost per vendor (£). 0 = free delivery. */
 function shippingCost(vendor: string): number {
   const v = vendor.toLowerCase();
-  if (v.includes('amazon') || v.includes('boots') || v.includes('beautybase') ||
-      v.includes('allbeauty') || v.includes('justmylook')) return 0;
+  if (
+    v.includes('boots') || v.includes('allbeauty') || v.includes('justmylook') ||
+    v.includes('beautybase') || v.includes('fragrance shop') || v.includes('perfume shop') ||
+    v.includes('lookfantastic') || v.includes('john lewis') || v.includes('amazon') ||
+    v.includes('sephora') || v.includes('selfridges') || v.includes('debenhams') ||
+    v.includes('harvey nichols') || v.includes('argos')
+  ) return 0;
   if (v.includes('notino')) return 3;
-  if (v.includes('fragrance direct') || v.includes('the fragrance shop')) return 0;
-  return 5; // default (official brand sites etc.)
-}
-
-function parsePrice(price: string): number {
-  return parseFloat(price.replace(/[^0-9.]/g, '')) || 0;
+  return 5; // brand official sites
 }
 
 function totalPrice(b: BuyOption): number {
   return parsePrice(b.price) + shippingCost(b.vendor);
 }
 
-function displayTotal(b: BuyOption): string {
-  const ship = shippingCost(b.vendor);
-  const total = parsePrice(b.price) + ship;
-  return `£${total.toFixed(0)} ${ship === 0 ? '(free delivery)' : `(+£${ship} delivery)`}`;
-}
-
-const REPUTABLE_SITES = [
-  { name: 'allbeauty.com', ic: '💜', desc: 'Great prices on 100% genuine fragrances' },
-  { name: 'justmylook.com', ic: '🛍️', desc: 'Authorised stockist, fast UK delivery' },
-  { name: 'notino.co.uk', ic: '🌿', desc: 'Europe\'s largest authorised fragrance retailer' },
+/** All UK retailers we always display. trusted = green badge. */
+const MASTER_RETAILERS: { name: string; ic: string; url: string; trusted?: boolean }[] = [
+  { name: 'allbeauty',         ic: '💜', url: 'allbeauty.com',           trusted: true },
+  { name: 'Argos',             ic: '📦', url: 'argos.co.uk' },
+  { name: 'Boots',             ic: '💊', url: 'boots.com',               trusted: true },
+  { name: 'Debenhams',         ic: '🏬', url: 'debenhams.com' },
+  { name: 'Harvey Nichols',    ic: '✨', url: 'harveynichols.com' },
+  { name: 'John Lewis',        ic: '🛒', url: 'johnlewis.com',           trusted: true },
+  { name: 'justmylook',        ic: '🛍️', url: 'justmylook.com',         trusted: true },
+  { name: 'Lookfantastic',     ic: '💄', url: 'lookfantastic.com' },
+  { name: 'notino',            ic: '🌿', url: 'notino.co.uk',            trusted: true },
+  { name: 'Selfridges',        ic: '🏪', url: 'selfridges.com' },
+  { name: 'Sephora',           ic: '🖤', url: 'sephora.co.uk' },
+  { name: 'The Fragrance Shop',ic: '🧴', url: 'thefragranceshop.co.uk', trusted: true },
+  { name: 'The Perfume Shop',  ic: '🌸', url: 'theperfumeshop.com',      trusted: true },
 ];
+
+/** Find the buy option (if any) that matches a master retailer name. */
+function matchBuy(buy: BuyOption[], retailerName: string): BuyOption | undefined {
+  const key = retailerName.toLowerCase();
+  return buy.find((b) => b.vendor.toLowerCase().includes(key) || key.includes(b.vendor.toLowerCase()));
+}
 
 export default function FragranceDetailScreen({ route }: Props) {
   const { fragId } = route.params;
@@ -130,50 +145,77 @@ export default function FragranceDetailScreen({ route }: Props) {
 
       {/* Where to Buy */}
       <SectionCard title="Where to Buy">
-        {/* Recommended reputable sites */}
         <View style={styles.reputableBanner}>
           <Text style={styles.reputableTitle}>✅ Get legitimate products here</Text>
-          <Text style={styles.reputableSub}>Trusted UK retailers — authentic guaranteed</Text>
+          <Text style={styles.reputableSub}>Prices include estimated UK delivery · sorted cheapest first</Text>
         </View>
-        {REPUTABLE_SITES.map((site) => (
-          <View key={site.name} style={styles.reputableRow}>
-            <Text style={styles.reputableIc}>{site.ic}</Text>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.reputableName}>{site.name}</Text>
-              <Text style={styles.reputableDesc}>{site.desc}</Text>
-            </View>
-            <View style={styles.reputableBadge}>
-              <Text style={styles.reputableBadgeText}>TRUSTED</Text>
-            </View>
-          </View>
-        ))}
-        {/* Other buy options — sorted cheapest total (inc. shipping) first */}
-        {f.buy.length > 0 && <View style={styles.buyDivider} />}
         {(() => {
-          const sorted = [...f.buy].sort((a, b) => totalPrice(a) - totalPrice(b));
-          const shown = buyExpanded ? sorted : sorted.slice(0, 3);
+          // Build priced rows (matched buy options) sorted by total price
+          const priced: { retailer: typeof MASTER_RETAILERS[0]; buy: BuyOption }[] = [];
+          // Also include any buy options NOT in MASTER_RETAILERS (e.g. official brand site)
+          const extraBuy = f.buy.filter(
+            (b) => !MASTER_RETAILERS.some((r) => matchBuy([b], r.name))
+          );
+          MASTER_RETAILERS.forEach((r) => {
+            const buy = matchBuy(f.buy, r.name);
+            if (buy) priced.push({ retailer: r, buy });
+          });
+          priced.sort((a, b) => totalPrice(a.buy) - totalPrice(b.buy));
+
+          const allPriced = [
+            ...extraBuy.map((b) => ({ retailer: { name: b.vendor, ic: b.ic, url: '', trusted: b.official }, buy: b })),
+            ...priced,
+          ].sort((a, b) => totalPrice(a.buy) - totalPrice(b.buy));
+
+          const unpriced = MASTER_RETAILERS.filter((r) => !matchBuy(f.buy, r.name))
+            .sort((a, b) => a.name.localeCompare(b.name));
+
+          const shownPriced = buyExpanded ? allPriced : allPriced.slice(0, 3);
+
           return (
             <>
-              {shown.map((b: BuyOption, i: number) => (
-                <View key={`${b.vendor}-${i}`} style={[styles.buyRow, b.official && styles.buyRowOfficial]}>
-                  <Text style={styles.buyIc}>{b.ic}</Text>
+              {shownPriced.map(({ retailer, buy }, i) => (
+                <View key={`${retailer.name}-${i}`} style={[styles.buyRow, buy.official && styles.buyRowOfficial]}>
+                  <Text style={styles.buyIc}>{retailer.ic}</Text>
                   <View style={{ flex: 1 }}>
-                    <Text style={styles.buyVendor}>{b.vendor}</Text>
-                    <Text style={styles.buyTag}>{b.tag}</Text>
+                    <Text style={styles.buyVendor}>{retailer.name}</Text>
+                    <Text style={styles.buyTag}>{retailer.url || buy.tag}</Text>
+                    {retailer.trusted && (
+                      <View style={styles.trustedPill}><Text style={styles.trustedText}>TRUSTED</Text></View>
+                    )}
                   </View>
                   <View style={{ alignItems: 'flex-end' }}>
-                    <Text style={styles.buyPrice}>{`£${parsePrice(b.price).toFixed(0)}`}</Text>
-                    <Text style={styles.buyDelivery}>{shippingCost(b.vendor) === 0 ? 'Free delivery' : `+£${shippingCost(b.vendor)} delivery`}</Text>
-                    <Text style={styles.buyTotal}>{`Total £${totalPrice(b).toFixed(0)}`}</Text>
+                    <Text style={styles.buyPrice}>{`£${parsePrice(buy.price).toFixed(0)}`}</Text>
+                    <Text style={styles.buyDelivery}>{shippingCost(buy.vendor) === 0 ? 'Free delivery' : `+£${shippingCost(buy.vendor)} delivery`}</Text>
+                    <Text style={styles.buyTotal}>{`Total £${totalPrice(buy).toFixed(0)}`}</Text>
                   </View>
                 </View>
               ))}
-              {sorted.length > 3 && (
+
+              {allPriced.length > 3 && (
                 <TouchableOpacity style={styles.expandBtn} onPress={() => setBuyExpanded((v) => !v)}>
                   <Text style={styles.expandBtnText}>
-                    {buyExpanded ? '▲ Show less' : `▼ See all ${sorted.length} options`}
+                    {buyExpanded ? '▲ Show less' : `▼ See all ${allPriced.length} priced options`}
                   </Text>
                 </TouchableOpacity>
+              )}
+
+              {/* Unlisted retailers — alphabetical with "—" */}
+              {unpriced.length > 0 && (
+                <>
+                  <View style={styles.buyDivider} />
+                  <Text style={styles.unlistedHeader}>Not currently listed on:</Text>
+                  {unpriced.map((r) => (
+                    <View key={r.name} style={styles.buyRow}>
+                      <Text style={styles.buyIc}>{r.ic}</Text>
+                      <View style={{ flex: 1 }}>
+                        <Text style={[styles.buyVendor, { color: colors.textDim }]}>{r.name}</Text>
+                        <Text style={styles.buyTag}>{r.url}</Text>
+                      </View>
+                      <Text style={styles.buyPriceDash}>—</Text>
+                    </View>
+                  ))}
+                </>
               )}
             </>
           );
@@ -359,8 +401,12 @@ const styles = StyleSheet.create({
   buyPrice: { color: colors.accent, fontSize: 15, fontWeight: '800' },
   buyDelivery: { color: colors.textDim, fontSize: 10, marginTop: 1 },
   buyTotal: { color: colors.text, fontSize: 11, fontWeight: '700', marginTop: 1 },
+  buyPriceDash: { color: colors.textDim, fontSize: 18, fontWeight: '300', paddingRight: 4 },
   expandBtn: { alignItems: 'center', paddingVertical: 10, marginTop: 4 },
   expandBtnText: { color: colors.accent, fontSize: 13, fontWeight: '700' },
+  trustedPill: { alignSelf: 'flex-start', backgroundColor: '#166534', borderRadius: radius.sm, paddingHorizontal: 6, paddingVertical: 2, marginTop: 3 },
+  trustedText: { color: '#4ade80', fontSize: 9, fontWeight: '800', letterSpacing: 0.5 },
+  unlistedHeader: { color: colors.textDim, fontSize: 11, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.4, marginBottom: 6 },
   recRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 8 },
   recLabel: { color: colors.textDim, fontSize: 11, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.5 },
   recName: { color: colors.text, fontSize: 14, fontWeight: '800', marginTop: 1 },
