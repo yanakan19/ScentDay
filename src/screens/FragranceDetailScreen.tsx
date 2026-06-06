@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useNavigation } from '@react-navigation/native';
@@ -19,6 +19,30 @@ type Props = NativeStackScreenProps<RootStackParamList, 'FragranceDetail'>;
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
 const REC_LABELS = ['Budget pick', 'Mid-range', 'Premium'];
+
+/** Estimated UK shipping cost per vendor (£). 0 = free delivery. */
+function shippingCost(vendor: string): number {
+  const v = vendor.toLowerCase();
+  if (v.includes('amazon') || v.includes('boots') || v.includes('beautybase') ||
+      v.includes('allbeauty') || v.includes('justmylook')) return 0;
+  if (v.includes('notino')) return 3;
+  if (v.includes('fragrance direct') || v.includes('the fragrance shop')) return 0;
+  return 5; // default (official brand sites etc.)
+}
+
+function parsePrice(price: string): number {
+  return parseFloat(price.replace(/[^0-9.]/g, '')) || 0;
+}
+
+function totalPrice(b: BuyOption): number {
+  return parsePrice(b.price) + shippingCost(b.vendor);
+}
+
+function displayTotal(b: BuyOption): string {
+  const ship = shippingCost(b.vendor);
+  const total = parsePrice(b.price) + ship;
+  return `£${total.toFixed(0)} ${ship === 0 ? '(free delivery)' : `(+£${ship} delivery)`}`;
+}
 
 const REPUTABLE_SITES = [
   { name: 'allbeauty.com', ic: '💜', desc: 'Great prices on 100% genuine fragrances' },
@@ -44,6 +68,8 @@ export default function FragranceDetailScreen({ route }: Props) {
       </Screen>
     );
   }
+
+  const [buyExpanded, setBuyExpanded] = useState(false);
 
   const saved = savedIds.includes(f.id);
   const recs = getVibeRecs(f);
@@ -121,18 +147,37 @@ export default function FragranceDetailScreen({ route }: Props) {
             </View>
           </View>
         ))}
-        {/* Other buy options */}
+        {/* Other buy options — sorted cheapest total (inc. shipping) first */}
         {f.buy.length > 0 && <View style={styles.buyDivider} />}
-        {f.buy.map((b: BuyOption, i: number) => (
-          <View key={`${b.vendor}-${i}`} style={[styles.buyRow, b.official && styles.buyRowOfficial]}>
-            <Text style={styles.buyIc}>{b.ic}</Text>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.buyVendor}>{b.vendor}</Text>
-              <Text style={styles.buyTag}>{b.tag}</Text>
-            </View>
-            <Text style={styles.buyPrice}>{b.price}</Text>
-          </View>
-        ))}
+        {(() => {
+          const sorted = [...f.buy].sort((a, b) => totalPrice(a) - totalPrice(b));
+          const shown = buyExpanded ? sorted : sorted.slice(0, 3);
+          return (
+            <>
+              {shown.map((b: BuyOption, i: number) => (
+                <View key={`${b.vendor}-${i}`} style={[styles.buyRow, b.official && styles.buyRowOfficial]}>
+                  <Text style={styles.buyIc}>{b.ic}</Text>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.buyVendor}>{b.vendor}</Text>
+                    <Text style={styles.buyTag}>{b.tag}</Text>
+                  </View>
+                  <View style={{ alignItems: 'flex-end' }}>
+                    <Text style={styles.buyPrice}>{`£${parsePrice(b.price).toFixed(0)}`}</Text>
+                    <Text style={styles.buyDelivery}>{shippingCost(b.vendor) === 0 ? 'Free delivery' : `+£${shippingCost(b.vendor)} delivery`}</Text>
+                    <Text style={styles.buyTotal}>{`Total £${totalPrice(b).toFixed(0)}`}</Text>
+                  </View>
+                </View>
+              ))}
+              {sorted.length > 3 && (
+                <TouchableOpacity style={styles.expandBtn} onPress={() => setBuyExpanded((v) => !v)}>
+                  <Text style={styles.expandBtnText}>
+                    {buyExpanded ? '▲ Show less' : `▼ See all ${sorted.length} options`}
+                  </Text>
+                </TouchableOpacity>
+              )}
+            </>
+          );
+        })()}
       </SectionCard>
 
       {/* Vibe recommendations */}
@@ -312,6 +357,10 @@ const styles = StyleSheet.create({
   buyVendor: { color: colors.text, fontSize: 14, fontWeight: '700' },
   buyTag: { color: colors.textDim, fontSize: 12, marginTop: 2 },
   buyPrice: { color: colors.accent, fontSize: 15, fontWeight: '800' },
+  buyDelivery: { color: colors.textDim, fontSize: 10, marginTop: 1 },
+  buyTotal: { color: colors.text, fontSize: 11, fontWeight: '700', marginTop: 1 },
+  expandBtn: { alignItems: 'center', paddingVertical: 10, marginTop: 4 },
+  expandBtnText: { color: colors.accent, fontSize: 13, fontWeight: '700' },
   recRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 8 },
   recLabel: { color: colors.textDim, fontSize: 11, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.5 },
   recName: { color: colors.text, fontSize: 14, fontWeight: '800', marginTop: 1 },
