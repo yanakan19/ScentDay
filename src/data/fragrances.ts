@@ -1,4 +1,5 @@
 import type { Fragrance } from '@/types';
+import { EXTENDED_FRAGRANCES } from './fragrancesExtended';
 
 /**
  * FRAGRANCE CATALOG (representative subset).
@@ -203,7 +204,7 @@ function toTitleCase(str: string): string {
 }
 
 /** Processed, exported catalog — notes normalised to Title Case. */
-export const FRAGRANCES: Fragrance[] = RAW_FRAGRANCES.map((f) => ({
+const CORE_FRAGRANCES: Fragrance[] = RAW_FRAGRANCES.map((f) => ({
   ...f,
   notes: {
     top: f.notes.top.map(toTitleCase),
@@ -211,6 +212,8 @@ export const FRAGRANCES: Fragrance[] = RAW_FRAGRANCES.map((f) => ({
     base: f.notes.base.map(toTitleCase),
   },
 }));
+
+export const FRAGRANCES: Fragrance[] = [...CORE_FRAGRANCES, ...EXTENDED_FRAGRANCES];
 
 export function fragById(id: string): Fragrance | undefined {
   return FRAGRANCES.find((f) => f.id === id);
