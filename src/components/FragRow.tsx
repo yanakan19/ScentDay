@@ -3,6 +3,7 @@ import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { colors } from '@/theme';
 import type { Fragrance } from '@/types';
 import BottleSVG from '@/components/BottleSVG';
+import { IconBookmark } from '@/components/TabIcons';
 import { useStore } from '@/store/useStore';
 
 /** Save (ribbon) + Wishlist (bag) buttons — shown on every fragrance listing (#8). */
@@ -14,7 +15,7 @@ export function SaveWishlistButtons({ fragId }: { fragId: string }) {
   return (
     <View style={swStyles.wrap}>
       <TouchableOpacity style={[swStyles.btn, saved && swStyles.btnOn]} onPress={() => toggleSave(fragId)} hitSlop={6}>
-        <Text style={[swStyles.icon, { opacity: saved ? 1 : 0.45 }]}>🔖</Text>
+        <IconBookmark color={saved ? colors.accent : colors.textDim} size={16} filled={saved} />
       </TouchableOpacity>
       <TouchableOpacity style={[swStyles.btn, wished && swStyles.btnOn]} onPress={() => toggleWishlist(fragId)} hitSlop={6}>
         <Text style={[swStyles.icon, { opacity: wished ? 1 : 0.45 }]}>🛍️</Text>

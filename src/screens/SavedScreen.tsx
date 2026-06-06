@@ -6,6 +6,7 @@ import { colors } from '@/theme';
 import type { RootStackParamList } from '@/navigation/types';
 import { Screen, BackHeader, EmptyState } from '@/components/ui';
 import { FragRow } from '@/components/FragRow';
+import { IconBookmark } from '@/components/TabIcons';
 import { useStore } from '@/store/useStore';
 import { FRAGRANCES } from '@/data/fragrances';
 
@@ -21,13 +22,19 @@ export default function SavedScreen() {
   return (
     <Screen>
       <BackHeader />
-      <Text style={styles.h2}>🔖 Saved Fragrances</Text>
+      <View style={styles.sectionHead}>
+        <IconBookmark color={colors.accent} size={18} filled />
+        <Text style={styles.h2}>Saved Fragrances</Text>
+      </View>
       {saved.length ? (
         saved.map((f) => <FragRow key={f.id} fragrance={f} onPress={() => navigation.navigate('FragranceDetail', { fragId: f.id })} />)
       ) : (
         <EmptyState>No saved fragrances yet.{'\n'}Tap 🔖 on any fragrance to save it.</EmptyState>
       )}
-      <Text style={styles.h2}>🛍️ Wishlist</Text>
+      <View style={styles.sectionHead}>
+        <Text style={{ fontSize: 16 }}>🛍️</Text>
+        <Text style={styles.h2}>Wishlist</Text>
+      </View>
       {wishlist.length ? (
         wishlist.map((f) => <FragRow key={f.id} fragrance={f} onPress={() => navigation.navigate('FragranceDetail', { fragId: f.id })} />)
       ) : (
@@ -38,5 +45,6 @@ export default function SavedScreen() {
 }
 
 const styles = StyleSheet.create({
-  h2: { color: colors.text, fontSize: 16, fontWeight: '700', paddingHorizontal: 16, paddingVertical: 14 },
+  sectionHead: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 16, paddingVertical: 14 },
+  h2: { color: colors.text, fontSize: 16, fontWeight: '700' },
 });

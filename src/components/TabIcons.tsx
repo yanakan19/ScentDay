@@ -44,6 +44,20 @@ export function IconDNA({ color, size = 24 }: Props) {
   );
 }
 
+export function IconBookmark({ color, size = 24, filled = false }: Props & { filled?: boolean }) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path
+        d="M5 3h14a1 1 0 011 1v17l-8-4-8 4V4a1 1 0 011-1z"
+        stroke={color}
+        strokeWidth={1.6}
+        strokeLinejoin="round"
+        fill={filled ? color : 'none'}
+      />
+    </Svg>
+  );
+}
+
 export function IconTrophy({ color, size = 24 }: Props) {
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
