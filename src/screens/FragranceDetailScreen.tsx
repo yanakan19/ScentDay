@@ -32,7 +32,8 @@ function shippingCost(vendor: string): number {
     v.includes('beautybase') || v.includes('fragrance shop') || v.includes('perfume shop') ||
     v.includes('lookfantastic') || v.includes('john lewis') || v.includes('amazon') ||
     v.includes('sephora') || v.includes('selfridges') || v.includes('debenhams') ||
-    v.includes('harvey nichols') || v.includes('argos')
+    v.includes('harvey nichols') || v.includes('argos') || v.includes('superdrug') ||
+    v.includes('flannels') || v.includes('fenwick')
   ) return 0;
   if (v.includes('notino')) return 3;
   return 5; // brand official sites
@@ -48,6 +49,8 @@ const MASTER_RETAILERS: { name: string; ic: string; url: string; trusted?: boole
   { name: 'Argos',             ic: '📦', url: 'argos.co.uk' },
   { name: 'Boots',             ic: '💊', url: 'boots.com',               trusted: true },
   { name: 'Debenhams',         ic: '🏬', url: 'debenhams.com' },
+  { name: 'Fenwick',           ic: '🏛️', url: 'fenwick.co.uk' },
+  { name: 'Flannels',          ic: '👔', url: 'flannels.com' },
   { name: 'Harvey Nichols',    ic: '✨', url: 'harveynichols.com' },
   { name: 'John Lewis',        ic: '🛒', url: 'johnlewis.com',           trusted: true },
   { name: 'justmylook',        ic: '🛍️', url: 'justmylook.com',         trusted: true },
@@ -55,6 +58,7 @@ const MASTER_RETAILERS: { name: string; ic: string; url: string; trusted?: boole
   { name: 'notino',            ic: '🌿', url: 'notino.co.uk',            trusted: true },
   { name: 'Selfridges',        ic: '🏪', url: 'selfridges.com' },
   { name: 'Sephora',           ic: '🖤', url: 'sephora.co.uk' },
+  { name: 'Superdrug',         ic: '💊', url: 'superdrug.com' },
   { name: 'The Fragrance Shop',ic: '🧴', url: 'thefragranceshop.co.uk', trusted: true },
   { name: 'The Perfume Shop',  ic: '🌸', url: 'theperfumeshop.com',      trusted: true },
 ];
