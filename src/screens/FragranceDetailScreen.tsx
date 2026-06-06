@@ -113,6 +113,7 @@ export default function FragranceDetailScreen({ route }: Props) {
   }
 
   const [buyExpanded, setBuyExpanded] = useState(false);
+  const [showUnlisted, setShowUnlisted] = useState(false);
 
   const saved = savedIds.includes(f.id);
   const recs = getVibeRecs(f);
@@ -228,12 +229,16 @@ export default function FragranceDetailScreen({ route }: Props) {
                 </TouchableOpacity>
               )}
 
-              {/* Unlisted retailers — alphabetical with "—" */}
+              {/* Unlisted retailers — collapsible, alphabetical with "—" */}
               {unpriced.length > 0 && (
                 <>
                   <View style={styles.buyDivider} />
-                  <Text style={styles.unlistedHeader}>Not currently listed on:</Text>
-                  {unpriced.map((r) => (
+                  <TouchableOpacity style={styles.expandBtn} onPress={() => setShowUnlisted((v) => !v)}>
+                    <Text style={styles.expandBtnText}>
+                      {showUnlisted ? `▲ Hide unlisted retailers` : `▼ Check ${unpriced.length} more retailers`}
+                    </Text>
+                  </TouchableOpacity>
+                  {showUnlisted && unpriced.map((r) => (
                     <View key={r.name} style={styles.buyRow}>
                       <RetailerLogo url={r.url} name={r.name} />
                       <View style={{ flex: 1 }}>
@@ -274,13 +279,16 @@ export default function FragranceDetailScreen({ route }: Props) {
 }
 
 function NoteGroup({ label, notes }: { label: string; notes: string[] }) {
+  const nav = useNavigation<Nav>();
   if (!notes.length) return null;
   return (
     <View style={styles.noteGroup}>
       <Text style={styles.noteGroupLabel}>{label}</Text>
       <View style={styles.noteWrap}>
         {notes.map((n, i) => (
-          <Chip key={`${n}-${i}`} label={n} />
+          <TouchableOpacity key={`${n}-${i}`} activeOpacity={0.7} onPress={() => nav.navigate('NoteDetail', { noteName: n })}>
+            <Chip label={n} />
+          </TouchableOpacity>
         ))}
       </View>
     </View>

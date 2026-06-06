@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import React, { useMemo, useState } from 'react';
+import { Image, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Screen, TopBar, ScopeTabs, EmptyState } from '@/components/ui';
@@ -13,6 +13,8 @@ import { useStore } from '@/store/useStore';
 import { getTrending, searchFragrances, groupByBrand, brandFragCounts } from '@/services/catalog';
 import { NOTES_DB } from '@/data/notes';
 import { BRAND_TIERS, BRAND_ICONS, BRAND_DEFAULT_ICON } from '@/data/prices';
+import { brandLogoUri } from '@/data/brandLogos';
+import { FRAGRANCES } from '@/data/fragrances';
 import { COMMUNITY_ICONS } from '@/data/communities';
 import { ALL_USERS } from '@/data/users';
 
@@ -114,6 +116,57 @@ function FragsTab({ nav }: { nav: Nav }) {
 }
 
 /* ───────────────────────── Notes tab ───────────────────────── */
+const NOTE_ROWS = 8; // notes shown before "View more"
+
+function noteUsageCount(noteName: string): number {
+  const n = noteName.toLowerCase();
+  return FRAGRANCES.reduce((acc, f) => {
+    const all = [...f.notes.top, ...f.notes.mid, ...f.notes.base];
+    return acc + (all.some((x) => x.toLowerCase() === n) ? 1 : 0);
+  }, 0);
+}
+
+function NotesCategorySection({ category, notes, query, nav }: {
+  category: string;
+  notes: { name: string; icon: string }[];
+  query: string;
+  nav: Nav;
+}) {
+  const [expanded, setExpanded] = useState(false);
+  const filtered = useMemo(() => {
+    const base = query ? notes.filter((n) => n.name.toLowerCase().includes(query)) : notes;
+    return [...base].sort((a, b) => noteUsageCount(b.name) - noteUsageCount(a.name));
+  }, [notes, query]);
+
+  if (filtered.length === 0) return null;
+  const shown = expanded ? filtered : filtered.slice(0, NOTE_ROWS);
+
+  return (
+    <View key={category}>
+      <Text style={styles.groupHeader}>{category}</Text>
+      <View style={styles.wrap}>
+        {shown.map((n) => (
+          <TouchableOpacity
+            key={n.name}
+            style={styles.notePill}
+            onPress={() => nav.navigate('NoteDetail', { noteName: n.name })}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.notePillText}>{`${n.icon} ${n.name}`}</Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+      {filtered.length > NOTE_ROWS && (
+        <TouchableOpacity style={styles.showMore} onPress={() => setExpanded((v) => !v)}>
+          <Text style={styles.showMoreText}>
+            {expanded ? 'View less ▲' : `View more (${filtered.length - NOTE_ROWS}) ▼`}
+          </Text>
+        </TouchableOpacity>
+      )}
+    </View>
+  );
+}
+
 function NotesTab({ nav }: { nav: Nav }) {
   const [q, setQ] = useState('');
   const query = q.trim().toLowerCase();
@@ -121,36 +174,38 @@ function NotesTab({ nav }: { nav: Nav }) {
   return (
     <View>
       <SearchInput value={q} onChange={setQ} placeholder="Search notes…" />
-      {Object.entries(NOTES_DB).map(([category, notes]) => {
-        const filtered = query ? notes.filter((n) => n.name.toLowerCase().includes(query)) : notes;
-        if (filtered.length === 0) return null;
-        return (
-          <View key={category}>
-            <Text style={styles.groupHeader}>{category}</Text>
-            <View style={styles.wrap}>
-              {filtered.map((n) => (
-                <TouchableOpacity
-                  key={n.name}
-                  style={styles.notePill}
-                  onPress={() => nav.navigate('NoteDetail', { noteName: n.name })}
-                  activeOpacity={0.7}
-                >
-                  <Text style={styles.notePillText}>{`${n.icon} ${n.name}`}</Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          </View>
-        );
-      })}
+      {Object.entries(NOTES_DB).map(([category, notes]) => (
+        <NotesCategorySection key={category} category={category} notes={notes} query={query} nav={nav} />
+      ))}
     </View>
   );
 }
 
 /* ───────────────────────── Brands tab ───────────────────────── */
+function BrandLogo({ brand }: { brand: string }) {
+  const [err, setErr] = useState(false);
+  const uri = brandLogoUri(brand);
+  if (!uri || err) {
+    return (
+      <View style={styles.brandLogoFallback}>
+        <Text style={styles.brandLogoFallbackText}>{(BRAND_ICONS[brand] || BRAND_DEFAULT_ICON)}</Text>
+      </View>
+    );
+  }
+  return (
+    <Image
+      source={{ uri }}
+      style={styles.brandLogo}
+      resizeMode="contain"
+      onError={() => setErr(true)}
+    />
+  );
+}
+
 function BrandRow({ brand, count, onPress }: { brand: string; count: number; onPress: () => void }) {
   return (
     <TouchableOpacity style={styles.brandRow} onPress={onPress} activeOpacity={0.7}>
-      <Text style={styles.brandIcon}>{BRAND_ICONS[brand] || BRAND_DEFAULT_ICON}</Text>
+      <BrandLogo brand={brand} />
       <View style={{ flex: 1 }}>
         <Text style={styles.brandName}>{brand}</Text>
         <Text style={styles.brandSub}>{`${count} fragrances`}</Text>
@@ -367,6 +422,9 @@ const styles = StyleSheet.create({
     borderRadius: radius.lg,
   },
   brandIcon: { fontSize: 26, width: 34, textAlign: 'center' },
+  brandLogo: { width: 40, height: 40, borderRadius: 8, backgroundColor: '#fff' },
+  brandLogoFallback: { width: 40, height: 40, borderRadius: 8, backgroundColor: colors.surface2, alignItems: 'center', justifyContent: 'center' },
+  brandLogoFallbackText: { fontSize: 22 },
   brandName: { color: colors.text, fontSize: 15, fontWeight: '800', letterSpacing: -0.3 },
   brandSub: { color: colors.textDim, fontSize: 12, marginTop: 2 },
   personRow: {
