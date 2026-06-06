@@ -112,22 +112,40 @@ export default function FragranceDetailScreen({ route }: Props) {
 
       {/* Hero */}
       <View style={styles.hero}>
+        {/* Bottle + save/wishlist */}
         <View style={styles.heroBottle}>
           <BottleSVG fragrance={f} size={100} />
           <View style={styles.heroActions}>
             <SaveWishlistButtons fragId={f.id} />
           </View>
         </View>
+
+        {/* Name + concentration */}
         <Text style={styles.heroName}>{f.name}</Text>
-        <View style={styles.heroBrandRow}>
-          <LogoImage uris={brandLogoUris(f.brand)} name={f.brand} size={28} radius={6} />
-          <Text style={styles.heroBrand}>{`${f.brand} · ${f.concentration}`}</Text>
+        <Text style={styles.heroConc}>{f.concentration}</Text>
+
+        {/* Brand (tappable) ← left   |   Rating block → right */}
+        <View style={styles.heroMeta}>
+          {/* Brand */}
+          <TouchableOpacity
+            style={styles.heroBrandRow}
+            onPress={() => nav.navigate('BrandDetail', { brand: f.brand })}
+            activeOpacity={0.7}
+          >
+            <LogoImage uris={brandLogoUris(f.brand)} name={f.brand} size={28} radius={6} />
+            <Text style={styles.heroBrand}>{f.brand}</Text>
+          </TouchableOpacity>
+
+          {/* Rating block */}
+          <View style={styles.heroRatingBlock}>
+            <Text style={styles.ratingBig}>{f.rating}</Text>
+            <StarScale rating={f.rating} />
+            <Text style={styles.votes}>{`${f.votes.toLocaleString()} votes`}</Text>
+            <Text style={styles.noteCount}>
+              {`${f.notes.top.length + f.notes.mid.length + f.notes.base.length} notes`}
+            </Text>
+          </View>
         </View>
-        <View style={styles.ratingRow}>
-          <Text style={styles.ratingBig}>{f.rating}</Text>
-          <Text style={styles.ratingMax}>/ 5</Text>
-        </View>
-        <Text style={styles.votes}>{`${f.votes.toLocaleString()} votes`}</Text>
       </View>
 
       {/* Notes */}
@@ -267,6 +285,31 @@ export default function FragranceDetailScreen({ route }: Props) {
   );
 }
 
+/** Five-star gold scale — filled, half-filled, empty stars from a 0–5 rating. */
+function StarScale({ rating }: { rating: number }) {
+  const stars = Array.from({ length: 5 }, (_, i) => {
+    const filled = rating - i;
+    if (filled >= 0.85) return 'full';
+    if (filled >= 0.35) return 'half';
+    return 'empty';
+  });
+  return (
+    <View style={starStyles.row}>
+      {stars.map((s, i) => (
+        <Text key={i} style={[starStyles.star, s === 'empty' && starStyles.empty]}>
+          {s === 'full' ? '★' : s === 'half' ? '⯨' : '☆'}
+        </Text>
+      ))}
+    </View>
+  );
+}
+
+const starStyles = StyleSheet.create({
+  row: { flexDirection: 'row', gap: 1, marginVertical: 3 },
+  star: { color: '#F5C518', fontSize: 13 },
+  empty: { color: '#555' },
+});
+
 function NoteGroup({ label, notes }: { label: string; notes: string[] }) {
   const nav = useNavigation<Nav>();
   if (!notes.length) return null;
@@ -357,26 +400,35 @@ const styles = StyleSheet.create({
   hero: { alignItems: 'center', paddingHorizontal: spacing.xl, paddingTop: spacing.sm, paddingBottom: spacing.lg },
   heroBottle: { position: 'relative', alignItems: 'center', justifyContent: 'center' },
   heroActions: { position: 'absolute', top: -2, right: -54 },
-  heartBtn: {
-    position: 'absolute',
-    top: -6,
-    right: -36,
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+  heroName: { color: colors.text, fontSize: 26, fontWeight: '900', letterSpacing: -0.5, marginTop: spacing.md, textAlign: 'center' },
+  heroConc: { color: colors.textDim, fontSize: 13, fontWeight: '500', marginTop: 4, textAlign: 'center', letterSpacing: 0.2 },
+  /* Row: brand pill on left, rating block on right */
+  heroMeta: {
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
+    justifyContent: 'space-between',
+    width: '100%',
+    marginTop: 14,
+    paddingHorizontal: 4,
+  },
+  heroBrandRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
     backgroundColor: colors.surface,
     borderWidth: 1,
     borderColor: colors.line,
+    borderRadius: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    flex: 1,
+    marginRight: 12,
   },
-  heroName: { color: colors.text, fontSize: 26, fontWeight: '900', letterSpacing: -0.5, marginTop: spacing.md, textAlign: 'center' },
-  heroBrandRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 6 },
-  heroBrand: { color: colors.textDim, fontSize: 14, textAlign: 'center' },
-  ratingRow: { flexDirection: 'row', alignItems: 'flex-end', marginTop: spacing.md },
-  ratingBig: { color: colors.accent, fontSize: 44, fontWeight: '900', letterSpacing: -1 },
-  ratingMax: { color: colors.textDim, fontSize: 18, fontWeight: '700', marginBottom: 8, marginLeft: 4 },
-  votes: { color: colors.textDim, fontSize: 13, marginTop: 2 },
+  heroBrand: { color: colors.text, fontSize: 14, fontWeight: '700', flexShrink: 1 },
+  heroRatingBlock: { alignItems: 'flex-end' },
+  ratingBig: { color: colors.accent, fontSize: 38, fontWeight: '900', letterSpacing: -1, lineHeight: 42 },
+  votes: { color: colors.textDim, fontSize: 11, marginTop: 1 },
+  noteCount: { color: colors.textDim, fontSize: 11, marginTop: 1 },
   officialBadge: { backgroundColor: colors.accentSoft, borderRadius: radius.sm, paddingHorizontal: 8, paddingVertical: 3 },
   officialBadgeText: { color: colors.accent, fontSize: 10, fontWeight: '800', letterSpacing: 0.5 },
   noteGroup: { marginBottom: 12 },
