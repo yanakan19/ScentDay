@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -13,6 +13,8 @@ import { useStore } from '@/store/useStore';
 import { fragById } from '@/data/fragrances';
 import { getAISummary } from '@/data/reviews';
 import { getVibeRecs } from '@/services/recommendations';
+import { retailerLogoUris, brandLogoUris } from '@/data/brandLogos';
+import { LogoImage } from '@/components/LogoImage';
 import { userById } from '@/data/users';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'FragranceDetail'>;
@@ -68,23 +70,7 @@ function logoUri(url: string) {
 }
 
 function RetailerLogo({ url, name }: { url: string; name: string }) {
-  const [err, setErr] = useState(false);
-  if (err || !url) {
-    // Fallback: initials badge
-    return (
-      <View style={styles.logoFallback}>
-        <Text style={styles.logoFallbackText}>{name.slice(0, 2).toUpperCase()}</Text>
-      </View>
-    );
-  }
-  return (
-    <Image
-      source={{ uri: logoUri(url) }}
-      style={styles.retailerLogo}
-      resizeMode="contain"
-      onError={() => setErr(true)}
-    />
-  );
+  return <LogoImage uris={retailerLogoUris(url)} name={name} size={36} radius={8} />;
 }
 
 /** Find the buy option (if any) that matches a master retailer name. */
@@ -133,7 +119,10 @@ export default function FragranceDetailScreen({ route }: Props) {
           </View>
         </View>
         <Text style={styles.heroName}>{f.name}</Text>
-        <Text style={styles.heroBrand}>{`${f.brand} · ${f.concentration}`}</Text>
+        <View style={styles.heroBrandRow}>
+          <LogoImage uris={brandLogoUris(f.brand)} name={f.brand} size={28} radius={6} />
+          <Text style={styles.heroBrand}>{`${f.brand} · ${f.concentration}`}</Text>
+        </View>
         <View style={styles.ratingRow}>
           <Text style={styles.ratingBig}>{f.rating}</Text>
           <Text style={styles.ratingMax}>/ 5</Text>
@@ -382,7 +371,8 @@ const styles = StyleSheet.create({
     borderColor: colors.line,
   },
   heroName: { color: colors.text, fontSize: 26, fontWeight: '900', letterSpacing: -0.5, marginTop: spacing.md, textAlign: 'center' },
-  heroBrand: { color: colors.textDim, fontSize: 14, marginTop: 4, textAlign: 'center' },
+  heroBrandRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 6 },
+  heroBrand: { color: colors.textDim, fontSize: 14, textAlign: 'center' },
   ratingRow: { flexDirection: 'row', alignItems: 'flex-end', marginTop: spacing.md },
   ratingBig: { color: colors.accent, fontSize: 44, fontWeight: '900', letterSpacing: -1 },
   ratingMax: { color: colors.textDim, fontSize: 18, fontWeight: '700', marginBottom: 8, marginLeft: 4 },
@@ -435,9 +425,6 @@ const styles = StyleSheet.create({
   buyVendor: { color: colors.text, fontSize: 14, fontWeight: '700' },
   buyTag: { color: colors.textDim, fontSize: 12, marginTop: 2 },
   buyPrice: { color: colors.accent, fontSize: 15, fontWeight: '800' },
-  retailerLogo: { width: 32, height: 32, borderRadius: 6, backgroundColor: '#fff' },
-  logoFallback: { width: 32, height: 32, borderRadius: 6, backgroundColor: colors.surface2, alignItems: 'center', justifyContent: 'center' },
-  logoFallbackText: { color: colors.textDim, fontSize: 10, fontWeight: '800' },
   buyDelivery: { color: colors.textDim, fontSize: 10, marginTop: 1 },
   buyTotal: { color: colors.text, fontSize: 11, fontWeight: '700', marginTop: 1 },
   buyPriceDash: { color: colors.textDim, fontSize: 18, fontWeight: '300', paddingRight: 4 },

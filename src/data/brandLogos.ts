@@ -58,7 +58,31 @@ export const BRAND_DOMAINS: Record<string, string> = {
   'Zoologist':              'zoologistperfumes.com',
 };
 
-export function brandLogoUri(brand: string): string | null {
+/**
+ * Returns an ordered list of logo URL candidates to try (most reliable first).
+ * The LogoImage component tries them in order, falling back to initials on failure.
+ */
+export function brandLogoUris(brand: string): string[] {
   const domain = BRAND_DOMAINS[brand];
-  return domain ? `https://logo.clearbit.com/${domain}` : null;
+  if (!domain) return [];
+  return [
+    // Google's favicon service — used in Chrome, extremely reliable, returns square icons
+    `https://t2.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=https://${domain}&size=64`,
+    // Clearbit as secondary
+    `https://logo.clearbit.com/${domain}`,
+  ];
+}
+
+/** Convenience: first candidate or null */
+export function brandLogoUri(brand: string): string | null {
+  return brandLogoUris(brand)[0] ?? null;
+}
+
+/** Domain → logo URIs for retailer URLs (not brand names) */
+export function retailerLogoUris(domain: string): string[] {
+  if (!domain) return [];
+  return [
+    `https://t2.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=https://${domain}&size=64`,
+    `https://logo.clearbit.com/${domain}`,
+  ];
 }
