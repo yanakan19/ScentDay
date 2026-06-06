@@ -6,7 +6,8 @@ import type { RootStackParamList } from '@/navigation/types';
 import { Screen, BackHeader } from '@/components/ui';
 import { FragRow } from '@/components/FragRow';
 import { fragsByBrand } from '@/services/catalog';
-import { BRAND_ICONS, BRAND_DEFAULT_ICON } from '@/data/prices';
+import { brandLogoUris } from '@/data/brandLogos';
+import { LogoImage } from '@/components/LogoImage';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'BrandDetail'>;
 
@@ -18,7 +19,7 @@ export default function BrandDetailScreen({ route, navigation }: Props) {
     <Screen>
       <BackHeader />
       <View style={styles.header}>
-        <Text style={styles.icon}>{BRAND_ICONS[brand] ?? BRAND_DEFAULT_ICON}</Text>
+        <LogoImage uris={brandLogoUris(brand)} name={brand} size={80} radius={16} />
         <Text style={styles.name}>{brand}</Text>
         <Text style={styles.sub}>{`${frags.length} fragrances in database`}</Text>
       </View>
@@ -31,8 +32,7 @@ export default function BrandDetailScreen({ route, navigation }: Props) {
 }
 
 const styles = StyleSheet.create({
-  header: { alignItems: 'center', paddingVertical: 16 },
-  icon: { fontSize: 48, marginBottom: 8 },
-  name: { color: colors.text, fontSize: 20, fontWeight: '800' },
-  sub: { color: colors.textDim, fontSize: 13, marginTop: 4 },
+  header: { alignItems: 'center', paddingVertical: 20, gap: 10 },
+  name: { color: colors.text, fontSize: 22, fontWeight: '800' },
+  sub: { color: colors.textDim, fontSize: 13 },
 });
