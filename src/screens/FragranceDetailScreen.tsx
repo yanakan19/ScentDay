@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Linking, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -8,13 +8,15 @@ import BottleSVG from '@/components/BottleSVG';
 import { SaveWishlistButtons } from '@/components/FragRow';
 import { colors, radius, spacing, verdictColors } from '@/theme';
 import type { RootStackParamList } from '@/navigation/types';
-import type { Fragrance, BuyOption, Review } from '@/types';
+import type { Fragrance, Review } from '@/types';
 import { useStore } from '@/store/useStore';
 import { fragById } from '@/data/fragrances';
 import { getAISummary } from '@/data/reviews';
 import { getVibeRecs } from '@/services/recommendations';
 import { retailerLogoUris, brandLogoUris } from '@/data/brandLogos';
 import { LogoImage } from '@/components/LogoImage';
+import { getBuyListings } from '@/services/priceService';
+import type { BuyListing } from '@/services/priceService';
 import { userById } from '@/data/users';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'FragranceDetail'>;
@@ -24,59 +26,6 @@ const REC_LABELS = ['Budget pick', 'Mid-range', 'Premium'];
 
 function parsePrice(price: string): number {
   return parseFloat(price.replace(/[^0-9.]/g, '')) || 0;
-}
-
-/** Estimated UK shipping cost per vendor (£). 0 = free delivery. */
-function shippingCost(vendor: string): number {
-  const v = vendor.toLowerCase();
-  if (
-    v.includes('boots') || v.includes('allbeauty') || v.includes('justmylook') ||
-    v.includes('beautybase') || v.includes('fragrance shop') || v.includes('perfume shop') ||
-    v.includes('lookfantastic') || v.includes('john lewis') || v.includes('amazon') ||
-    v.includes('sephora') || v.includes('selfridges') || v.includes('debenhams') ||
-    v.includes('harvey nichols') || v.includes('argos') || v.includes('superdrug') ||
-    v.includes('flannels') || v.includes('fenwick')
-  ) return 0;
-  if (v.includes('notino')) return 3;
-  return 5; // brand official sites
-}
-
-function totalPrice(b: BuyOption): number {
-  return parsePrice(b.price) + shippingCost(b.vendor);
-}
-
-/** All UK retailers we always display. trusted = green badge. */
-const MASTER_RETAILERS: { name: string; url: string; trusted?: boolean }[] = [
-  { name: 'allbeauty',          url: 'allbeauty.com',           trusted: true },
-  { name: 'Argos',              url: 'argos.co.uk' },
-  { name: 'Boots',              url: 'boots.com',               trusted: true },
-  { name: 'Debenhams',          url: 'debenhams.com' },
-  { name: 'Fenwick',            url: 'fenwick.co.uk' },
-  { name: 'Flannels',           url: 'flannels.com' },
-  { name: 'Harvey Nichols',     url: 'harveynichols.com' },
-  { name: 'John Lewis',         url: 'johnlewis.com',           trusted: true },
-  { name: 'justmylook',         url: 'justmylook.com',          trusted: true },
-  { name: 'Lookfantastic',      url: 'lookfantastic.com' },
-  { name: 'notino',             url: 'notino.co.uk',            trusted: true },
-  { name: 'Selfridges',         url: 'selfridges.com' },
-  { name: 'Sephora',            url: 'sephora.co.uk' },
-  { name: 'Superdrug',          url: 'superdrug.com' },
-  { name: 'The Fragrance Shop', url: 'thefragranceshop.co.uk',  trusted: true },
-  { name: 'The Perfume Shop',   url: 'theperfumeshop.com',      trusted: true },
-];
-
-function logoUri(url: string) {
-  return `https://logo.clearbit.com/${url}`;
-}
-
-function RetailerLogo({ url, name }: { url: string; name: string }) {
-  return <LogoImage uris={retailerLogoUris(url)} name={name} size={36} radius={8} />;
-}
-
-/** Find the buy option (if any) that matches a master retailer name. */
-function matchBuy(buy: BuyOption[], retailerName: string): BuyOption | undefined {
-  const key = retailerName.toLowerCase();
-  return buy.find((b) => b.vendor.toLowerCase().includes(key) || key.includes(b.vendor.toLowerCase()));
 }
 
 export default function FragranceDetailScreen({ route }: Props) {
@@ -97,9 +46,6 @@ export default function FragranceDetailScreen({ route }: Props) {
       </Screen>
     );
   }
-
-  const [buyExpanded, setBuyExpanded] = useState(false);
-  const [showUnlisted, setShowUnlisted] = useState(false);
 
   const saved = savedIds.includes(f.id);
   const recs = getVibeRecs(f);
@@ -183,83 +129,9 @@ export default function FragranceDetailScreen({ route }: Props) {
       <SectionCard title="Where to Buy">
         <View style={styles.reputableBanner}>
           <Text style={styles.reputableTitle}>✅ Get legitimate products here</Text>
-          <Text style={styles.reputableSub}>Prices include estimated UK delivery · sorted cheapest first</Text>
+          <Text style={styles.reputableSub}>Tap any row to open the retailer · prices include estimated UK delivery · sorted cheapest first</Text>
         </View>
-        {(() => {
-          // Build priced rows (matched buy options) sorted by total price
-          const priced: { retailer: typeof MASTER_RETAILERS[0]; buy: BuyOption }[] = [];
-          // Also include any buy options NOT in MASTER_RETAILERS (e.g. official brand site)
-          const extraBuy = f.buy.filter(
-            (b) => !MASTER_RETAILERS.some((r) => matchBuy([b], r.name))
-          );
-          MASTER_RETAILERS.forEach((r) => {
-            const buy = matchBuy(f.buy, r.name);
-            if (buy) priced.push({ retailer: r, buy });
-          });
-          priced.sort((a, b) => totalPrice(a.buy) - totalPrice(b.buy));
-
-          const allPriced = [
-            ...extraBuy.map((b) => ({ retailer: { name: b.vendor, ic: b.ic, url: '', trusted: b.official }, buy: b })),
-            ...priced,
-          ].sort((a, b) => totalPrice(a.buy) - totalPrice(b.buy));
-
-          const unpriced = MASTER_RETAILERS.filter((r) => !matchBuy(f.buy, r.name))
-            .sort((a, b) => a.name.localeCompare(b.name));
-
-          const shownPriced = buyExpanded ? allPriced : allPriced.slice(0, 3);
-
-          return (
-            <>
-              {shownPriced.map(({ retailer, buy }, i) => (
-                <View key={`${retailer.name}-${i}`} style={[styles.buyRow, buy.official && styles.buyRowOfficial]}>
-                  <RetailerLogo url={retailer.url || ''} name={retailer.name} />
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.buyVendor}>{retailer.name}</Text>
-                    <Text style={styles.buyTag}>{retailer.url || buy.tag}</Text>
-                    {retailer.trusted && (
-                      <View style={styles.trustedPill}><Text style={styles.trustedText}>TRUSTED</Text></View>
-                    )}
-                  </View>
-                  <View style={{ alignItems: 'flex-end' }}>
-                    <Text style={styles.buyPrice}>{`£${parsePrice(buy.price).toFixed(0)}`}</Text>
-                    <Text style={styles.buyDelivery}>{shippingCost(buy.vendor) === 0 ? 'Free delivery' : `+£${shippingCost(buy.vendor)} delivery`}</Text>
-                    <Text style={styles.buyTotal}>{`Total £${totalPrice(buy).toFixed(0)}`}</Text>
-                  </View>
-                </View>
-              ))}
-
-              {allPriced.length > 3 && (
-                <TouchableOpacity style={styles.expandBtn} onPress={() => setBuyExpanded((v) => !v)}>
-                  <Text style={styles.expandBtnText}>
-                    {buyExpanded ? '▲ Show less' : `▼ See all ${allPriced.length} priced options`}
-                  </Text>
-                </TouchableOpacity>
-              )}
-
-              {/* Unlisted retailers — collapsible, alphabetical with "—" */}
-              {unpriced.length > 0 && (
-                <>
-                  <View style={styles.buyDivider} />
-                  <TouchableOpacity style={styles.expandBtn} onPress={() => setShowUnlisted((v) => !v)}>
-                    <Text style={styles.expandBtnText}>
-                      {showUnlisted ? `▲ Hide unlisted retailers` : `▼ Check ${unpriced.length} more retailers`}
-                    </Text>
-                  </TouchableOpacity>
-                  {showUnlisted && unpriced.map((r) => (
-                    <View key={r.name} style={styles.buyRow}>
-                      <RetailerLogo url={r.url} name={r.name} />
-                      <View style={{ flex: 1 }}>
-                        <Text style={[styles.buyVendor, { color: colors.textDim }]}>{r.name}</Text>
-                        <Text style={styles.buyTag}>{r.url}</Text>
-                      </View>
-                      <Text style={styles.buyPriceDash}>—</Text>
-                    </View>
-                  ))}
-                </>
-              )}
-            </>
-          );
-        })()}
+        <BuySection frag={f} />
       </SectionCard>
 
       {/* Vibe recommendations */}
@@ -282,6 +154,86 @@ export default function FragranceDetailScreen({ route }: Props) {
         )}
       </SectionCard>
     </Screen>
+  );
+}
+
+// ─── Buy section ──────────────────────────────────────────────────────────
+
+function buyShipping(vendor: string): number {
+  const v = vendor.toLowerCase();
+  if (['boots','allbeauty','justmylook','fragrance shop','perfume shop','lookfantastic',
+       'john lewis','amazon','sephora','selfridges','debenhams','harvey nichols','argos',
+       'superdrug','flannels','fenwick'].some(k => v.includes(k))) return 0;
+  if (v.includes('notino')) return 3;
+  return 5;
+}
+
+function BuySection({ frag }: { frag: Fragrance }) {
+  const [expanded, setExpanded] = useState(false);
+  const listings: BuyListing[] = getBuyListings(frag);
+
+  // Sort: official first, then by total (price + shipping), cheapest first
+  const official = listings.filter(l => l.official);
+  const retailers = listings
+    .filter(l => !l.official)
+    .sort((a, b) => {
+      const pa = parsePrice(a.price) + buyShipping(a.vendor);
+      const pb = parsePrice(b.price) + buyShipping(b.vendor);
+      return pa - pb;
+    });
+
+  const sorted = [...official, ...retailers];
+  const shown = expanded ? sorted : sorted.slice(0, 3);
+
+  const openUrl = (url: string) => {
+    if (url) Linking.openURL(url).catch(() => {});
+  };
+
+  return (
+    <>
+      {shown.map((listing, i) => {
+        const ship = buyShipping(listing.vendor);
+        const base = parsePrice(listing.price);
+        const total = base + ship;
+        const logoUris = listing.official
+          ? brandLogoUris(listing.vendor)
+          : retailerLogoUris(listing.tag);
+        return (
+          <TouchableOpacity
+            key={`${listing.vendor}-${i}`}
+            style={[styles.buyRow, listing.official && styles.buyRowOfficial]}
+            onPress={() => openUrl(listing.url)}
+            activeOpacity={0.75}
+          >
+            <LogoImage uris={logoUris} name={listing.vendor} size={36} radius={8} />
+            <View style={{ flex: 1 }}>
+              <Text style={styles.buyVendor}>{listing.vendor}</Text>
+              <Text style={styles.buyTag}>{listing.tag}</Text>
+              {listing.official && (
+                <View style={styles.officialPill}><Text style={styles.officialPillText}>OFFICIAL</Text></View>
+              )}
+              {listing.trusted && !listing.official && (
+                <View style={styles.trustedPill}><Text style={styles.trustedText}>TRUSTED</Text></View>
+              )}
+            </View>
+            <View style={{ alignItems: 'flex-end' }}>
+              <Text style={styles.buyPrice}>{listing.price}</Text>
+              <Text style={styles.buyDelivery}>{ship === 0 ? 'Free delivery' : `+£${ship} delivery`}</Text>
+              {ship > 0 && <Text style={styles.buyTotal}>{`Total £${total}`}</Text>}
+              <Text style={styles.buyTap}>↗</Text>
+            </View>
+          </TouchableOpacity>
+        );
+      })}
+
+      {sorted.length > 3 && (
+        <TouchableOpacity style={styles.expandBtn} onPress={() => setExpanded(v => !v)}>
+          <Text style={styles.expandBtnText}>
+            {expanded ? '▲ Show less' : `▼ See all ${sorted.length} options`}
+          </Text>
+        </TouchableOpacity>
+      )}
+    </>
   );
 }
 
@@ -484,6 +436,9 @@ const styles = StyleSheet.create({
   expandBtnText: { color: colors.accent, fontSize: 13, fontWeight: '700' },
   trustedPill: { alignSelf: 'flex-start', backgroundColor: '#166534', borderRadius: radius.sm, paddingHorizontal: 6, paddingVertical: 2, marginTop: 3 },
   trustedText: { color: '#4ade80', fontSize: 9, fontWeight: '800', letterSpacing: 0.5 },
+  officialPill: { alignSelf: 'flex-start', backgroundColor: colors.accentSoft, borderRadius: radius.sm, paddingHorizontal: 6, paddingVertical: 2, marginTop: 3 },
+  officialPillText: { color: colors.accent, fontSize: 9, fontWeight: '800', letterSpacing: 0.5 },
+  buyTap: { color: colors.textDim, fontSize: 14, marginTop: 2 },
   unlistedHeader: { color: colors.textDim, fontSize: 11, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.4, marginBottom: 6 },
   recRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 8 },
   recLabel: { color: colors.textDim, fontSize: 11, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.5 },
