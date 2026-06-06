@@ -21,9 +21,13 @@ export default function HomeScreen() {
   const reviews = useStore((s) => s.reviews);
   const posts = useStore((s) => s.posts);
 
-  // Flatten + most-recent reviews
+  // One review per fragrance (pick highest-upvoted), then sort by review id so
+  // the feed shows variety instead of two cards from the same bottle in a row.
   const latestReviews: { review: Review; fragId: string }[] = Object.entries(reviews)
-    .flatMap(([fragId, list]) => list.map((review) => ({ review, fragId })))
+    .map(([fragId, list]) => {
+      const best = [...list].sort((a, b) => b.upvotes - a.upvotes)[0];
+      return { review: best, fragId };
+    })
     .sort((a, b) => b.review.id - a.review.id)
     .slice(0, 10);
 
