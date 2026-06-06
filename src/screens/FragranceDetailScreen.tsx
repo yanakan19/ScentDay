@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -44,24 +44,48 @@ function totalPrice(b: BuyOption): number {
 }
 
 /** All UK retailers we always display. trusted = green badge. */
-const MASTER_RETAILERS: { name: string; ic: string; url: string; trusted?: boolean }[] = [
-  { name: 'allbeauty',         ic: '💜', url: 'allbeauty.com',           trusted: true },
-  { name: 'Argos',             ic: '📦', url: 'argos.co.uk' },
-  { name: 'Boots',             ic: '💊', url: 'boots.com',               trusted: true },
-  { name: 'Debenhams',         ic: '🏬', url: 'debenhams.com' },
-  { name: 'Fenwick',           ic: '🏛️', url: 'fenwick.co.uk' },
-  { name: 'Flannels',          ic: '👔', url: 'flannels.com' },
-  { name: 'Harvey Nichols',    ic: '✨', url: 'harveynichols.com' },
-  { name: 'John Lewis',        ic: '🛒', url: 'johnlewis.com',           trusted: true },
-  { name: 'justmylook',        ic: '🛍️', url: 'justmylook.com',         trusted: true },
-  { name: 'Lookfantastic',     ic: '💄', url: 'lookfantastic.com' },
-  { name: 'notino',            ic: '🌿', url: 'notino.co.uk',            trusted: true },
-  { name: 'Selfridges',        ic: '🏪', url: 'selfridges.com' },
-  { name: 'Sephora',           ic: '🖤', url: 'sephora.co.uk' },
-  { name: 'Superdrug',         ic: '💊', url: 'superdrug.com' },
-  { name: 'The Fragrance Shop',ic: '🧴', url: 'thefragranceshop.co.uk', trusted: true },
-  { name: 'The Perfume Shop',  ic: '🌸', url: 'theperfumeshop.com',      trusted: true },
+const MASTER_RETAILERS: { name: string; url: string; trusted?: boolean }[] = [
+  { name: 'allbeauty',          url: 'allbeauty.com',           trusted: true },
+  { name: 'Argos',              url: 'argos.co.uk' },
+  { name: 'Boots',              url: 'boots.com',               trusted: true },
+  { name: 'Debenhams',          url: 'debenhams.com' },
+  { name: 'Fenwick',            url: 'fenwick.co.uk' },
+  { name: 'Flannels',           url: 'flannels.com' },
+  { name: 'Harvey Nichols',     url: 'harveynichols.com' },
+  { name: 'John Lewis',         url: 'johnlewis.com',           trusted: true },
+  { name: 'justmylook',         url: 'justmylook.com',          trusted: true },
+  { name: 'Lookfantastic',      url: 'lookfantastic.com' },
+  { name: 'notino',             url: 'notino.co.uk',            trusted: true },
+  { name: 'Selfridges',         url: 'selfridges.com' },
+  { name: 'Sephora',            url: 'sephora.co.uk' },
+  { name: 'Superdrug',          url: 'superdrug.com' },
+  { name: 'The Fragrance Shop', url: 'thefragranceshop.co.uk',  trusted: true },
+  { name: 'The Perfume Shop',   url: 'theperfumeshop.com',      trusted: true },
 ];
+
+function logoUri(url: string) {
+  return `https://logo.clearbit.com/${url}`;
+}
+
+function RetailerLogo({ url, name }: { url: string; name: string }) {
+  const [err, setErr] = useState(false);
+  if (err || !url) {
+    // Fallback: initials badge
+    return (
+      <View style={styles.logoFallback}>
+        <Text style={styles.logoFallbackText}>{name.slice(0, 2).toUpperCase()}</Text>
+      </View>
+    );
+  }
+  return (
+    <Image
+      source={{ uri: logoUri(url) }}
+      style={styles.retailerLogo}
+      resizeMode="contain"
+      onError={() => setErr(true)}
+    />
+  );
+}
 
 /** Find the buy option (if any) that matches a master retailer name. */
 function matchBuy(buy: BuyOption[], retailerName: string): BuyOption | undefined {
@@ -180,7 +204,7 @@ export default function FragranceDetailScreen({ route }: Props) {
             <>
               {shownPriced.map(({ retailer, buy }, i) => (
                 <View key={`${retailer.name}-${i}`} style={[styles.buyRow, buy.official && styles.buyRowOfficial]}>
-                  <Text style={styles.buyIc}>{retailer.ic}</Text>
+                  <RetailerLogo url={retailer.url || ''} name={retailer.name} />
                   <View style={{ flex: 1 }}>
                     <Text style={styles.buyVendor}>{retailer.name}</Text>
                     <Text style={styles.buyTag}>{retailer.url || buy.tag}</Text>
@@ -211,7 +235,7 @@ export default function FragranceDetailScreen({ route }: Props) {
                   <Text style={styles.unlistedHeader}>Not currently listed on:</Text>
                   {unpriced.map((r) => (
                     <View key={r.name} style={styles.buyRow}>
-                      <Text style={styles.buyIc}>{r.ic}</Text>
+                      <RetailerLogo url={r.url} name={r.name} />
                       <View style={{ flex: 1 }}>
                         <Text style={[styles.buyVendor, { color: colors.textDim }]}>{r.name}</Text>
                         <Text style={styles.buyTag}>{r.url}</Text>
@@ -403,6 +427,9 @@ const styles = StyleSheet.create({
   buyVendor: { color: colors.text, fontSize: 14, fontWeight: '700' },
   buyTag: { color: colors.textDim, fontSize: 12, marginTop: 2 },
   buyPrice: { color: colors.accent, fontSize: 15, fontWeight: '800' },
+  retailerLogo: { width: 32, height: 32, borderRadius: 6, backgroundColor: '#fff' },
+  logoFallback: { width: 32, height: 32, borderRadius: 6, backgroundColor: colors.surface2, alignItems: 'center', justifyContent: 'center' },
+  logoFallbackText: { color: colors.textDim, fontSize: 10, fontWeight: '800' },
   buyDelivery: { color: colors.textDim, fontSize: 10, marginTop: 1 },
   buyTotal: { color: colors.text, fontSize: 11, fontWeight: '700', marginTop: 1 },
   buyPriceDash: { color: colors.textDim, fontSize: 18, fontWeight: '300', paddingRight: 4 },

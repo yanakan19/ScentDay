@@ -22,6 +22,7 @@ export default function ProfileScreen() {
   const following = useStore((s) => s.following);
   const followers = useStore((s) => s.followers);
   const drops = useStore((s) => s.drops);
+  const wishlistIds = useStore((s) => s.wishlistIds);
   const profile = useStore((s) => s.profile);
   const updateProfile = useStore((s) => s.updateProfile);
   const [modal, setModal] = useState<ModalKind>(null);
@@ -119,6 +120,30 @@ export default function ProfileScreen() {
               );
             })}
           </View>
+        </SectionCard>
+
+        <SectionCard title="🛍️ Wishlist">
+          {wishlistIds.length === 0 ? (
+            <Text style={styles.dim}>No fragrances on the wishlist yet.</Text>
+          ) : (
+            <View style={styles.grid}>
+              {wishlistIds.slice(0, 6).map((id) => {
+                const f = fragById(id);
+                if (!f) return null;
+                return (
+                  <TouchableOpacity key={id} style={styles.gridCell} onPress={() => navigation.navigate('FragranceDetail', { fragId: f.id })}>
+                    <BottleSVG fragrance={f} size={44} />
+                    <Text style={styles.gridName} numberOfLines={2}>{f.name}</Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          )}
+          {wishlistIds.length > 6 && (
+            <TouchableOpacity style={styles.historyBtn} onPress={() => navigation.navigate('Saved')}>
+              <Text style={styles.historyText}>{`See all ${wishlistIds.length} wishlist items →`}</Text>
+            </TouchableOpacity>
+          )}
         </SectionCard>
 
         <SectionCard title="Recent Posts">

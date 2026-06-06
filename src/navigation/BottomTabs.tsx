@@ -4,6 +4,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { colors } from '@/theme';
 import type { TabParamList } from '@/navigation/types';
 import { Fab } from '@/components/Fab';
+import { IconHome, IconSearch, IconCamera, IconDNA, IconTrophy } from '@/components/TabIcons';
 
 import HomeScreen from '@/screens/HomeScreen';
 import FeedScreen from '@/screens/FeedScreen';
@@ -13,14 +14,6 @@ import RankingsScreen from '@/screens/RankingsScreen';
 
 const Tab = createBottomTabNavigator<TabParamList>();
 
-const ICONS: Record<keyof TabParamList, string> = {
-  Discover: '💎',
-  Feed: '📸',
-  Home: '🏠',
-  Blend: '🧬',
-  Ranks: '🏆',
-};
-
 const LABELS: Record<keyof TabParamList, string> = {
   Discover: 'Discover',
   Feed: 'Feed',
@@ -29,12 +22,24 @@ const LABELS: Record<keyof TabParamList, string> = {
   Ranks: 'Ranks',
 };
 
+function RouteIcon({ route, color }: { route: keyof TabParamList; color: string }) {
+  const size = 22;
+  switch (route) {
+    case 'Discover': return <IconSearch color={color} size={size} />;
+    case 'Feed':     return <IconCamera color={color} size={size} />;
+    case 'Home':     return <IconHome   color={color} size={size} />;
+    case 'Blend':    return <IconDNA    color={color} size={size} />;
+    case 'Ranks':    return <IconTrophy color={color} size={size} />;
+  }
+}
+
 function TabBarIcon({ route, focused }: { route: keyof TabParamList; focused: boolean }) {
   const isHome = route === 'Home';
+  const iconColor = isHome ? '#000' : focused ? colors.accent : colors.textDim;
   return (
     <View style={styles.iconWrap}>
       <View style={[isHome && styles.homeBubble]}>
-        <Text style={[styles.icon, isHome && styles.homeIcon, focused && !isHome && { opacity: 1 }]}>{ICONS[route]}</Text>
+        <RouteIcon route={route} color={iconColor} />
       </View>
       <Text style={[styles.label, { color: focused ? colors.accent : colors.textDim }]}>{LABELS[route]}</Text>
     </View>
